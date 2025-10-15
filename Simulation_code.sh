@@ -66,6 +66,7 @@ samtools faidx /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN312467
 
 # Generate LongISLND reads
 /home/taouk/bin/longislnd/simulate.py --movie_id ONT --read_type fastq --model_dir longislnd_model --fasta reference.fasta --coverage 100
+
 cat out/*.fq | gzip > longislnd_reads.fastq.gz
 
 # Clean up
