@@ -15,8 +15,8 @@ conda install pip
 conda install -c conda-forge regex
 
 # setup
-mkdir NanoSim
-cd NanoSim
+mkdir ONT_read_sim/NanoSim
+cd ONT_read_sim/NanoSim
 
 # was getting a weird error because header names were too long
 zcat ../reads/Enterobacter_hormaechei_SAMN31246718_sup5.2.0.fastq.gz \
@@ -45,9 +45,8 @@ sed -i 's|http://www.hdfgroup.org/ftp/HDF5/prev-releases/HDF-JAVA/hdf-java-2.11/
 # Build LongISLND
 ./linux_build.sh
 
-cd /home/taouk/ONT_read_sim
-mkdir LongISLND
-cd LongISLND
+mkdir ONT_read_sim/LongISLND
+cd ONT_read_sim/LongISLND
 
 #LongISLND needs read files to be unzipped and in the same directory as the tool is running
 zcat /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_shortnames.fastq.gz \
@@ -65,9 +64,80 @@ samtools faidx /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN312467
 /home/taouk/bin/longislnd/sample.py --input_suffix fastq.bam --read_type fastq --model_dir longislnd_model --reference /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta
 
 # Generate LongISLND reads
-/home/taouk/bin/longislnd/simulate.py --movie_id ONT --read_type fastq --model_dir longislnd_model --fasta reference.fasta --coverage 100
-
+/home/taouk/bin/longislnd/simulate.py --movie_id ONT --read_type fastq --model_dir longislnd_model --fasta /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta --coverage 100
+# merge
 cat out/*.fq | gzip > longislnd_reads.fastq.gz
 
 # Clean up
 rm -r out real_reads.fastq.bam* reference.fasta.fai
+
+
+### PBSIM3
+conda activate pbsim3
+
+mkdir ONT_read_sim/PBSIM3
+cd ONT_read_sim/PBSIM3
+
+# simulate reads
+pbsim --strategy wgs --method sample --sample /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_sup5.2.0.fastq.gz --depth 100 --genome /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta
+# merge
+cat *.fq.gz > pbsm_reads.fastq.gz
+
+
+### simON-reads
+conda activate simON-reads
+
+mkdir ONT_read_sim/simON-reads
+cd ONT_read_sim/simON-reads
+
+# simulate reads
+simON_reads.py -i /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta -n 50000 -ehp -ese > simON_reads.fastq
+gzip simON_reads.fastq > simON_reads.fastq.gz
+
+
+### Badread
+conda activate badread
+
+mkdir ONT_read_sim/Badread
+cd ONT_read_sim/Badread
+
+badread simulate --reference /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta --quantity 50x --glitches 10000,10,10  --junk_reads 0.1 --random_reads 0.1 --chimeras 0.1 --identity 20,3 | gzip > badread_reads.fastq.gz
+
+
+### lrsim
+conda activate lrsim_env
+
+bash taouk/bin/lrsim/unzipmodels.sh
+
+mkdir ONT_read_sim/lrsim
+cd ONT_read_sim/lrsim
+
+#simulation
+lrsim -t 32 -m /home/taouk/bin/lrsim/models/HG002_ONT_UL.lrsm -d 100 /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta > lrsim_reads.fq
+gzip -c lrsim_reads.fq > lrsim_reads.fq.gz
+
+
+### simlord
+
+# installation
+conda create -n simlord python=3.10 pip numpy scipy cython 
+conda activate simlord
+pip install pysam 
+conda install -c bioconda dinopy 
+pip install simlord
+
+mkdir ONT_read_sim/simlord
+cd ONT_read_sim/simlord
+
+#simulation
+simlord --read-reference /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta -n 50000 -fl 15000 -pi 0.08 -pd 0.08 -ps 0.02 --no-sam simlord_reads
+gzip -c simlord_reads.fastq > simlord_reads.fastq.gz
+
+
+### Squigilator
+conda activate squigulator_env
+
+mkdir ONT_read_sim/squigulator
+cd ONT_read_sim/squigulator
+
+squigulator /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta -x dna-r10-prom -o squigulator_reads.blow5 -f 30
