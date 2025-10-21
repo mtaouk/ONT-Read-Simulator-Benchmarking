@@ -91,7 +91,7 @@ mkdir ONT_read_sim/simON-reads
 cd ONT_read_sim/simON-reads
 
 # simulate reads
-simON_reads.py -i /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta -n 50000 -ehp -ese > simON_reads.fastq
+simON_reads.py -i /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta -n 50000 > simON_reads.fastq
 gzip simON_reads.fastq > simON_reads.fastq.gz
 
 
@@ -114,7 +114,7 @@ cd ONT_read_sim/lrsim
 
 #simulation
 lrsim -t 32 -m /home/taouk/bin/lrsim/models/HG002_ONT_UL.lrsm -d 100 /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta > lrsim_reads.fq
-gzip -c lrsim_reads.fq > lrsim_reads.fq.gz
+gzip lrsim_reads.fq > lrsim_reads.fq.gz
 
 
 ### simlord
@@ -131,7 +131,7 @@ cd ONT_read_sim/simlord
 
 #simulation
 simlord --read-reference /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta -n 50000 -fl 15000 -pi 0.08 -pd 0.08 -ps 0.02 --no-sam simlord_reads
-gzip -c simlord_reads.fastq > simlord_reads.fastq.gz
+gzip simlord_reads.fastq > simlord_reads.fastq.gz
 
 
 ### Squigilator
