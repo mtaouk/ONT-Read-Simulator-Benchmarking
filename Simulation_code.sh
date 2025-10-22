@@ -24,11 +24,13 @@ zcat ../reads/Enterobacter_hormaechei_SAMN31246718_sup5.2.0.fastq.gz \
 | gzip > ../reads/Enterobacter_hormaechei_SAMN31246718_shortnames.fastq.gz
 
 # run genome characterisation stage
-/home/taouk/bin/NanoSim/src/read_analysis.py genome -i ../reads/Enterobacter_hormaechei_SAMN31246718_shortnames.fastq.gz -rg ../reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta -o training/training -t 30
+/home/taouk/bin/NanoSim/src/read_analysis.py genome -i ../reads/Enterobacter_hormaechei_SAMN31246718_shortnames.fastq.gz -rg ../reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta -o training/training -t 30 --fastq
 
 # run read simulation stage
-/home/taouk/bin/NanoSim/src/simulator.py genome -rg ../reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta -o simulation/simulated -x 100 --seed 3 -c training/training -t 32
+/home/taouk/bin/NanoSim/src/simulator.py genome -rg ../reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta -o simulation_fastq/simulated -x 100 --seed 3 -c training/training -t 32 --fastq
 
+gzip simulation_fastq/simulated_aligned_reads.fastq > simulation_fastq/simulated_aligned_reads.fastq.gz
+gzip simulation_fastq/simulated_unaligned_reads.fastq > simulation_fastq/simulated_unaligned_reads.fastq.gz
 
 ### LongISLND
 # Create a conda environment
@@ -91,7 +93,7 @@ mkdir ONT_read_sim/simON-reads
 cd ONT_read_sim/simON-reads
 
 # simulate reads
-simON_reads.py -i /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta -n 50000 > simON_reads.fastq
+simON_reads.py -i /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta > simON_reads.fastq
 gzip simON_reads.fastq > simON_reads.fastq.gz
 
 
