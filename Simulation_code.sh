@@ -247,3 +247,50 @@ mkdir ONT_read_sim/squigulator
 cd ONT_read_sim/squigulator
 
 squigulator /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta -x dna-r10-prom -o squigulator_reads.blow5 -f 30
+
+
+
+
+
+### Data gathering
+mkdir -p mapped_sim_reads
+cd mapped_sim_reads
+
+conda activate mapping
+
+```
+ref="/home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta"
+
+declare -A reads=(
+  [Badread]="/home/taouk/ONT_read_sim/Badread/simulated_reads.fastq.gz"
+  [LongISLND]="/home/taouk/ONT_read_sim/LongISLND/longislnd_reads.fastq.gz"
+  [lrsim]="/home/taouk/ONT_read_sim/lrsim/lrsim_reads.fq.gz"
+  [NanoSim]="/home/taouk/ONT_read_sim/NanoSim/simulation/simulated_aligned_reads.fastq.gz"
+  [PBSIM3]="/home/taouk/ONT_read_sim/PBSIM3/pbsm_reads.fastq.gz"
+  [simlord]="/home/taouk/ONT_read_sim/simlord/simlord_ont_like.fastq.gz"
+  [simON]="/home/taouk/ONT_read_sim/simON-reads/simON_reads.fastq.gz"
+)
+
+for name in "${!reads[@]}"; do
+  echo "Aligning $name..."
+  minimap2 -t 8 -c -eqx "$ref" "${reads[$name]}" > "${name}.paf" &
+done
+
+wait
+```
+
+minimap2 -t 16 -c -eqx /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_shortnames.fastq.gz >  real_reads.paf
+
+# clean .pafs so that only the primary alignments for each read are kept
+grep -v "tp:A:S" Badread.paf > Badread_primary.paf
+grep -v "tp:A:S" LongISLND.paf > LongISLND_primary.paf
+grep -v "tp:A:S" lrsim.paf > lrsim_primary.paf
+grep -v "tp:A:S" NanoSim.paf > NanoSim_primary.paf
+grep -v "tp:A:S" PBSIM3.paf > PBSIM3_primary.paf
+grep -v "tp:A:S" simlord.paf > simlord_primary.paf
+grep -v "tp:A:S" simON.paf > simON_primary.paf
+grep -v "tp:A:S" real_reads.paf > real_reads_primary.paf
+
+# run code that gets the stats
+python extract_read_stats.py
+# note, I took sim-ON out of the analysis because it never stopped simulating reads
