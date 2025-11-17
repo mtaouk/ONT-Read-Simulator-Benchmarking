@@ -1,0 +1,73 @@
+---
+title: "ONT_sim"
+author: "Mona Taouk"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(scales)
+
+setwd("~/Library/CloudStorage/OneDrive-TheUniversityofMelbourne/2025(Ingle_Postdoc)/ONT_read_simulator/ONT-Read-Simulator-Benchmarking")
+
+data <- read.csv("all_tools_stats.tsv", sep = "\t")
+
+```
+
+## 
+
+```{r}
+ggplot(data, aes(x = read_length, weight = read_length, fill = tool)) +
+  geom_histogram(binwidth = 1000, alpha = 0.8, position = "identity") +
+  facet_wrap(~tool, scales = "free_y") +
+  scale_x_continuous(labels = scales::comma) +
+  theme_bw() +
+  labs(
+    x = "Read length (bp)",
+    y = "Count",
+    title = "Read length distribution per simulation tool"
+  ) +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(face = "bold")
+  ) +
+  scale_x_continuous(limits = c(0, 100000))
+```
+
+```{r}
+ggplot(data, aes(x = actual_identity, fill = tool)) +
+  geom_histogram(binwidth = 0.01, alpha = 0.8, position = "identity") +
+  facet_wrap(~tool, scales = "free_y") +
+  scale_x_continuous(labels = scales::comma) +
+  theme_bw() +
+  labs(
+    x = "Percentage identity",
+    y = "Count",
+    title = "Read identities"
+  ) +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(face = "bold")
+  ) +
+  scale_x_continuous(limits = c(0.6, 1))
+```
+
+```{r}
+ggplot(data, aes(x = mean_qscore, fill = tool)) +
+  geom_histogram(binwidth = 1, alpha = 0.8, position = "identity") +
+  facet_wrap(~tool, scales = "free_y") +
+  scale_x_continuous(labels = scales::comma) +
+  theme_bw() +
+  labs(
+    x = "Q-score",
+    y = "Count",
+    title = "Q-score"
+  ) +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(face = "bold")
+  )
+```

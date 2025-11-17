@@ -279,7 +279,10 @@ done
 wait
 ```
 
-minimap2 -t 16 -c -eqx /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_shortnames.fastq.gz >  real_reads.paf
+# subset the real reads to make them about 100x coverage
+seqtk sample -s100 Enterobacter_hormaechei_SAMN31246718_shortnames.fastq.gz 50000 > real_reads_subset.fastq.gz
+minimap2 -t 16 -c -eqx /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta /home/taouk/ONT_read_sim/reads/real_reads_subset.fastq.gz >  real_reads.paf
+
 
 # clean .pafs so that only the primary alignments for each read are kept
 grep -v "tp:A:S" Badread.paf > Badread_primary.paf
