@@ -21,6 +21,21 @@ awk '{
 }' read_lengths.txt
 
 
+#get length stats quick
+zcat /home/taouk/ONT_read_sim/lrsim/lrsim_reads.fq.gz \
+  | awk 'NR%4==2 {
+      L = length($0)
+      n++
+      sum += L
+      if (L < min || min == "") min = L
+      if (L > max) max = L
+    }
+    END {print "reads:",n, "mean:",sum/n, "min:",min, "max:",max}'
+#
+
+
+
+
 
 
 
@@ -61,6 +76,17 @@ zcat simulation/simulated_aligned_reads.fastq.gz | awk 'NR%4==2 {print length($0
         if(running>=target){print "N50:", lengths[i]; break}
     }
 }'
+
+#run read simulation stage without specifying (hope it goes off of reads)
+/home/taouk/bin/NanoSim/src/simulator.py genome -rg ../reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta -o simulation_15122025/simulated -x 100 --seed 3 -c training/training -t 32 --fastq
+gzip simulated_aligned_reads.fastq > nanosim_reads.fastq.gz
+
+
+
+
+
+
+
 
 
 
@@ -122,6 +148,9 @@ zcat longislnd_reads.fastq.gz | awk 'NR%4==2 {print length($0)}' | sort -nr | aw
 
 
 
+
+
+
 ### PBSIM3
 conda activate pbsim3
 
@@ -137,8 +166,22 @@ cat *.fq.gz > pbsm_reads.fastq.gz
 # if I just use default settings, its giving an N50 of 250 which isn't right. Even though the reads are 12k. Its reading the reads wrong so I have to specify.
 pbsim --strategy wgs --method errhmm --errhmm /home/taouk/ONT_read_sim/PBSIM3/ERRHMM-ONT.model  --genome /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta --depth 100 --length-mean 12000 --length-sd 5000 --accuracy-mean 0.99 --difference-ratio 39:24:36 --hp-del-bias 1 --prefix sd
 
+# trying to optimise even more
+pbsim --strategy wgs --method errhmm --errhmm /home/taouk/ONT_read_sim/PBSIM3/models/ERRHMM-ONT-HQ.model --qshmm  /home/taouk/ONT_read_sim/PBSIM3/models/QSHMM-ONT-HQ.model --genome /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta --depth 100 --length-mean 12000 --length-sd 5000 --length-min 100 --length-max 200000 --accuracy-mean 0.99 --difference-ratio 39:24:36 --hp-del-bias 1 --prefix sd
+
 # merge
 cat *.fq.gz > pbsm_reads.fastq.gz
+
+### more optimisation
+pbsim --strategy wgs --method errhmm --errhmm /home/taouk/ONT_read_sim/PBSIM3/models/ERRHMM-ONT-HQ.model --qshmm  /home/taouk/ONT_read_sim/PBSIM3/models/QSHMM-ONT-HQ.model --genome /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta --depth 100 --length-mean 12000 --length-sd 5000 --length-min 100 --length-max 200000 --accuracy-mean 0.99 --difference-ratio 39:24:36 --hp-del-bias 1 --prefix sd
+
+
+### try AGAIN to get Q scores
+pbsim --strategy wgs --method qshmm --errhmm /home/taouk/ONT_read_sim/PBSIM3/models/ERRHMM-ONT-HQ.model --qshmm  /home/taouk/ONT_read_sim/PBSIM3/models/QSHMM-ONT-HQ.model --genome /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta --depth 100 --accuracy-mean 0.99 --difference-ratio 39:24:36 --hp-del-bias 1 --pass-num 1 --fastq --prefix sd
+
+### try sampling from reads again
+pbsim --strategy wgs --method sample --sample /home/taouk/ONT_read_sim/LongISLND/real_reads.fastq --genome /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta --depth 100  --prefix ont_sample --difference-ratio 39:24:36
+
 
 # Compute N50
 zcat pbsm_reads.fastq.gz | awk 'NR%4==2 {print length($0)}' | sort -nr | awk '{
@@ -150,6 +193,9 @@ zcat pbsm_reads.fastq.gz | awk 'NR%4==2 {print length($0)}' | sort -nr | awk '{
         if(running>=target){print "N50:", lengths[i]; break}
     }
 }'
+
+
+
 
 
 
@@ -167,6 +213,9 @@ simON_reads.py -i /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN312
 
 #zip
 gzip simON_reads.fastq > simON_reads.fastq.gz
+
+
+
 
 
 
@@ -190,6 +239,12 @@ badread qscore_model --reference /home/taouk/ONT_read_sim/reads/Enterobacter_hor
 # simulate
 badread simulate --reference /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta --error_model ont_model.err --qscore_model ont_model.qsc --quantity 50x --length 15000,10000 --identity 94,2.5 | gzip > simulated_reads.fastq.gz
 
+# simulate without parameters
+badread simulate --reference /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta --error_model ont_model.err --qscore_model ont_model.qsc --quantity 50x | gzip > simulated_reads_15122025.fastq.gz
+
+
+
+
 
 
 
@@ -204,10 +259,11 @@ mkdir ONT_read_sim/lrsim
 cd ONT_read_sim/lrsim
 
 #simulation
-lrsim -t 32 -m /home/taouk/bin/lrsim/models/HG002_ONT_UL.lrsm -d 100 --error=0.10 --eratio=40:40:20 --fixedreadlength=12000 --lengthfloatratio=0.4 --nolengthfloat --tailingn --rvarianceratio=1.5 --bfvarianceratio=1.2 --blocksize=500 --regionsize=1000 /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta > lrsim_reads.fq
+lrsim -t 32 -m /home/taouk/bin/lrsim/models/HG002_ONT_UL.lrsm -d 100 --error=0.01 --rvarianceratio=8 --bfvarianceratio=1 --blocksize=200 --eratio 50:30:20 --fixedreadlength=12000 --lengthfloatratio=0.2  /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta | gzip > lrsim_reads.fq.gz
 
-#zip
-gzip lrsim_reads.fq > lrsim_reads.fq.gz
+
+
+
 
 
 
@@ -236,6 +292,8 @@ simlord --read-reference /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_
 #zip
 gzip simlord_ont_like.fastq > simlord_ont_reads.fastq.gz
 
+# More ONT accurate 15122025
+simlord --read-reference /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta --coverage 100 --sample-readlength-from-fastq /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_sup5.2.0.fastq.gz --prob-ins 0.03 --prob-del 0.06 --prob-sub 0.004 --probability-threshold 0.18 --no-sam --gzip simlord_15122025_like
 
 
 
@@ -252,23 +310,46 @@ squigulator /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_
 
 
 
+
+
+
+
+
+
+
 ### Data gathering
 mkdir -p mapped_sim_reads
 cd mapped_sim_reads
 
 conda activate mapping
 
+# subset the real reads to make them about 100x coverage
+seqtk sample -s100 Enterobacter_hormaechei_SAMN31246718_shortnames.fastq.gz 50000 > real_reads_subset.fastq.gz
+
+
+# copying over whichever read set I want to use for the data extraction, because sometimes I edit the upstream code and change the names but I want the "final" ones to be in one place for clarity and easy coding
+
+cp /home/taouk/ONT_read_sim/Badread/simulated_reads_15122025.fastq.gz Badread.fastq.gz
+cp /home/taouk/ONT_read_sim/LongISLND/longislnd_reads.fastq.gz LongISLND.fastq.gz
+cp /home/taouk/ONT_read_sim/lrsim/lrsim_reads.fq.gz lrsim.fastq.gz
+cp /home/taouk/ONT_read_sim/NanoSim/simulation_15122025/simulated_aligned_reads.fastq.gz NanoSim.fastq.gz
+cp /home/taouk/ONT_read_sim/PBSIM3/18122025/pbsm_reads.fastq.gz PBSIM3.fastq.gz
+cp /home/taouk/ONT_read_sim/simlord/simlord_15122025_like.fastq.gz simlord.fastq.gz
+cp /home/taouk/ONT_read_sim/reads/real_reads_subset.fastq.gz real.fastq.gz
+
+
+### mapping reads to reference:
 ```
 ref="/home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta"
 
 declare -A reads=(
-  [Badread]="/home/taouk/ONT_read_sim/Badread/simulated_reads.fastq.gz"
-  [LongISLND]="/home/taouk/ONT_read_sim/LongISLND/longislnd_reads.fastq.gz"
-  [lrsim]="/home/taouk/ONT_read_sim/lrsim/lrsim_reads.fq.gz"
-  [NanoSim]="/home/taouk/ONT_read_sim/NanoSim/simulation/simulated_aligned_reads.fastq.gz"
-  [PBSIM3]="/home/taouk/ONT_read_sim/PBSIM3/pbsm_reads.fastq.gz"
-  [simlord]="/home/taouk/ONT_read_sim/simlord/simlord_ont_like.fastq.gz"
-  [simON]="/home/taouk/ONT_read_sim/simON-reads/simON_reads.fastq.gz"
+  [Badread]="/home/taouk/ONT_read_sim/mapped_sim_reads/Badread.fastq.gz"
+  [LongISLND]="/home/taouk/ONT_read_sim/mapped_sim_reads/LongISLND.fastq.gz"
+  [lrsim]="/home/taouk/ONT_read_sim/mapped_sim_reads/lrsim.fastq.gz" 
+  [NanoSim]="/home/taouk/ONT_read_sim/mapped_sim_reads/NanoSim.fastq.gz" 
+  [PBSIM3]="/home/taouk/ONT_read_sim/mapped_sim_reads/PBSIM3.fastq.gz"
+  [simlord]="/home/taouk/ONT_read_sim/mapped_sim_reads/simlord.fastq.gz" 
+  [real]="/home/taouk/ONT_read_sim/mapped_sim_reads/real.fastq.gz" 
 )
 
 for name in "${!reads[@]}"; do
@@ -279,11 +360,6 @@ done
 wait
 ```
 
-# subset the real reads to make them about 100x coverage
-seqtk sample -s100 Enterobacter_hormaechei_SAMN31246718_shortnames.fastq.gz 50000 > real_reads_subset.fastq.gz
-minimap2 -t 16 -c -eqx /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta /home/taouk/ONT_read_sim/reads/real_reads_subset.fastq.gz >  real_reads.paf
-
-
 # clean .pafs so that only the primary alignments for each read are kept
 grep -v "tp:A:S" Badread.paf > Badread_primary.paf
 grep -v "tp:A:S" LongISLND.paf > LongISLND_primary.paf
@@ -291,9 +367,9 @@ grep -v "tp:A:S" lrsim.paf > lrsim_primary.paf
 grep -v "tp:A:S" NanoSim.paf > NanoSim_primary.paf
 grep -v "tp:A:S" PBSIM3.paf > PBSIM3_primary.paf
 grep -v "tp:A:S" simlord.paf > simlord_primary.paf
-grep -v "tp:A:S" simON.paf > simON_primary.paf
-grep -v "tp:A:S" real_reads.paf > real_reads_primary.paf
+grep -v "tp:A:S" real.paf > real_primary.paf
 
 # run code that gets the stats
+conda activate python_tools
+
 python extract_read_stats.py
-# note, I took sim-ON out of the analysis because it never stopped simulating reads

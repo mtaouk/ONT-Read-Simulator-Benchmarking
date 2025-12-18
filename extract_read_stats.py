@@ -8,13 +8,13 @@ import csv
 
 # tool name -> (paf, fastq)
 files = {
-    "Badread": ("/home/taouk/ONT_read_sim/mapped_sim_reads/Badread_primary.paf", "/home/taouk/ONT_read_sim/Badread/simulated_reads.fastq.gz"),
-    "LongISLND": ("/home/taouk/ONT_read_sim/mapped_sim_reads/LongISLND_primary.paf", "/home/taouk/ONT_read_sim/LongISLND/longislnd_reads.fastq.gz"),
-    "lrsim": ("/home/taouk/ONT_read_sim/mapped_sim_reads/lrsim_primary.paf", "/home/taouk/ONT_read_sim/lrsim/lrsim_reads.fq.gz"),
-    "NanoSim": ("/home/taouk/ONT_read_sim/mapped_sim_reads/NanoSim_primary.paf", "/home/taouk/ONT_read_sim/NanoSim/simulation/simulated_aligned_reads.fastq.gz"),
-    "PBSIM3": ("/home/taouk/ONT_read_sim/mapped_sim_reads/PBSIM3_primary.paf", "/home/taouk/ONT_read_sim/PBSIM3/pbsm_reads.fastq.gz"),
-    "simlord": ("/home/taouk/ONT_read_sim/mapped_sim_reads/simlord_primary.paf", "/home/taouk/ONT_read_sim/simlord/simlord_ont_like.fastq.gz"),
-    "real_reads": ("/home/taouk/ONT_read_sim/mapped_sim_reads/real_reads_primary.paf", "/home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_shortnames.fastq.gz")
+    "Badread": ("/home/taouk/ONT_read_sim/mapped_sim_reads/Badread_primary.paf", "/home/taouk/ONT_read_sim/mapped_sim_reads/Badread.fastq.gz"),
+    "LongISLND": ("/home/taouk/ONT_read_sim/mapped_sim_reads/LongISLND_primary.paf", "/home/taouk/ONT_read_sim/mapped_sim_reads/LongISLND.fastq.gz"),
+    "lrsim": ("/home/taouk/ONT_read_sim/mapped_sim_reads/lrsim_primary.paf", "/home/taouk/ONT_read_sim/mapped_sim_reads/lrsim.fastq.gz"),
+    "NanoSim": ("/home/taouk/ONT_read_sim/mapped_sim_reads/NanoSim_primary.paf", "/home/taouk/ONT_read_sim/mapped_sim_reads/NanoSim.fastq.gz"),
+    "PBSIM3": ("/home/taouk/ONT_read_sim/mapped_sim_reads/PBSIM3_primary.paf", "/home/taouk/ONT_read_sim/mapped_sim_reads/PBSIM3.fastq.gz"),
+    "simlord": ("/home/taouk/ONT_read_sim/mapped_sim_reads/simlord_primary.paf", "/home/taouk/ONT_read_sim/mapped_sim_reads/simlord.fastq.gz"),
+    "real_reads": ("/home/taouk/ONT_read_sim/mapped_sim_reads/real_primary.paf", "/home/taouk/ONT_read_sim/mapped_sim_reads/real.fastq.gz")
 }
 
 all_dfs = []
@@ -40,7 +40,7 @@ for tool, (paf_path, fastq_path) in files.items():
     fastq_df = pd.DataFrame.from_dict(fastq_dict, orient="index").reset_index().rename(columns={"index": "read_name"})
     fastq_df["tool"] = tool
 
-    # --- Load PAF if available ---
+    # --- Load PAF ---
     try:
         df_paf = pd.read_csv(
             paf_path, sep='\t', header=None, engine="python",

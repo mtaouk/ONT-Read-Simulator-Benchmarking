@@ -17,42 +17,36 @@ data <- read.csv("all_tools_stats.tsv", sep = "\t")
 
 ```
 
-## 
-
 ```{r}
-ggplot(data, aes(x = read_length, weight = read_length, fill = tool)) +
-  geom_histogram(binwidth = 1000, alpha = 0.8, position = "identity") +
+ggplot(data, aes(x = read_length, fill = tool)) +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.8, position = "identity") +
   facet_wrap(~tool, scales = "free_y") +
-  scale_x_continuous(labels = scales::comma) +
+  scale_x_continuous(labels = scales::comma, 
+                     limits = c(0, 100000)) +
   theme_bw() +
-  labs(
-    x = "Read length (bp)",
+  labs(x = "Read length (bp)",
     y = "Count",
-    title = "Read length distribution per simulation tool"
-  ) +
-  theme(
-    legend.position = "none",
-    strip.text = element_text(face = "bold")
-  ) +
-  scale_x_continuous(limits = c(0, 100000))
+    title = "Read length distribution per simulation tool") +
+  theme(legend.position = "none",
+    strip.text = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank())
 ```
 
 ```{r}
 ggplot(data, aes(x = actual_identity, fill = tool)) +
   geom_histogram(binwidth = 0.01, alpha = 0.8, position = "identity") +
   facet_wrap(~tool, scales = "free_y") +
-  scale_x_continuous(labels = scales::comma) +
   theme_bw() +
-  labs(
-    x = "Percentage identity",
+  labs(x = "Percentage identity",
     y = "Count",
-    title = "Read identities"
-  ) +
-  theme(
-    legend.position = "none",
-    strip.text = element_text(face = "bold")
-  ) +
-  scale_x_continuous(limits = c(0.6, 1))
+    title = "Read identities") +
+  theme(legend.position = "none",
+    strip.text = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank())
 ```
 
 ```{r}
@@ -61,13 +55,23 @@ ggplot(data, aes(x = mean_qscore, fill = tool)) +
   facet_wrap(~tool, scales = "free_y") +
   scale_x_continuous(labels = scales::comma) +
   theme_bw() +
-  labs(
-    x = "Q-score",
+  labs(x = "Q-score",
     y = "Count",
-    title = "Q-score"
-  ) +
-  theme(
-    legend.position = "none",
-    strip.text = element_text(face = "bold")
-  )
+    title = "Q-score") +
+  theme(legend.position = "none",
+    strip.text = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank())
+```
+
+```{r}
+
+data$Identity_Qscore <- -10 * log10(pmax(1 - data$actual_identity, 1e-10))
+
+ggplot(data, aes(Identity_Qscore, fill = tool)) +
+  geom_histogram() +
+  facet_wrap(~ tool)
+
+
 ```
