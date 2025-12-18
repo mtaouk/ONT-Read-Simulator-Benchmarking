@@ -180,7 +180,9 @@ pbsim --strategy wgs --method errhmm --errhmm /home/taouk/ONT_read_sim/PBSIM3/mo
 pbsim --strategy wgs --method qshmm --errhmm /home/taouk/ONT_read_sim/PBSIM3/models/ERRHMM-ONT-HQ.model --qshmm  /home/taouk/ONT_read_sim/PBSIM3/models/QSHMM-ONT-HQ.model --genome /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta --depth 100 --accuracy-mean 0.99 --difference-ratio 39:24:36 --hp-del-bias 1 --pass-num 1 --fastq --prefix sd
 
 ### try sampling from reads again
-pbsim --strategy wgs --method sample --sample /home/taouk/ONT_read_sim/LongISLND/real_reads.fastq --genome /home/taouk/ONT_read_sim/reads/Enterobacter_hormaechei_SAMN31246718_reference.fasta --depth 100  --prefix ont_sample --difference-ratio 39:24:36
+pbsim --strategy wgs --method sample --sample /home/taouk/ONT_read_sim/LongISLND/real_reads.fastq --genome/home/taouk/NGtransmission/NCCP11945.fa --depth 100  --prefix ont_sample --difference-ratio 39:24:36
+
+pbsim --strategy wgs --method sample --sample /home/taouk/ONT_read_sim/LongISLND/real_reads.fastq --genome/home/taouk/NGtransmission/NCCP11945.fa --depth 100  --prefix ont_sample --difference-ratio 39:24:36
 
 
 # Compute N50
@@ -373,3 +375,16 @@ grep -v "tp:A:S" real.paf > real_primary.paf
 conda activate python_tools
 
 python extract_read_stats.py
+
+
+
+
+
+
+###### PBSIM3 test using gono reads
+
+minimap2 -t 8 -c -eqx /home/taouk/NGtransmission/NCCP11945.fa  /home/taouk/ONT_read_sim/PBSIM3/test18122025/gono_reads.fastq.gz > gono_reads.paf
+
+grep -v "tp:A:S" gono_reads.paf > gono_primary.paf
+
+python TEST_extract_read_stats.py

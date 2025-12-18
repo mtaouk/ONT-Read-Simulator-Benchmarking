@@ -75,3 +75,90 @@ ggplot(data, aes(Identity_Qscore, fill = tool)) +
 
 
 ```
+
+```{r}
+ggplot(data, aes(x = mean_qscore, y = actual_identity, color = tool)) +
+  #geom_point(alpha = 0.5, size = 1.5) +     
+  geom_smooth(method = "loess", se = FALSE) +       
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  labs(
+    title = "Q Score vs Actual Identity per Tool",
+    x = "Mean Phred Q Score",
+    y = "Actual Identity (%)",
+    color = "Tool"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "right",
+    panel.grid.major = element_line(color = "grey90"),
+    panel.grid.minor = element_line(color = "grey95")
+  )
+```
+
+```{r}
+gono_PBSIM3 <- read.csv("test_stats.tsv", sep = "\t")
+
+ggplot(gono_PBSIM3, aes(x = read_length)) +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.8, position = "identity") +
+  scale_x_continuous(labels = scales::comma, 
+                     limits = c(0, 100000)) +
+  theme_bw() +
+  labs(x = "Read length (bp)",
+    y = "Count",
+    title = "Read length distribution") +
+  theme(legend.position = "none",
+    strip.text = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank())
+
+```
+
+```{r}
+ggplot(gono_PBSIM3, aes(x = actual_identity)) +
+  geom_histogram(binwidth = 0.01, alpha = 0.8, position = "identity") +
+  theme_bw() +
+  labs(x = "Percentage identity",
+    y = "Count",
+    title = "Read identities") +
+  theme(legend.position = "none",
+    strip.text = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank())
+```
+
+```{r}
+ggplot(gono_PBSIM3, aes(x = mean_qscore)) +
+  geom_histogram(binwidth = 1, alpha = 0.8, position = "identity") +
+  scale_x_continuous(labels = scales::comma) +
+  theme_bw() +
+  labs(x = "Q-score",
+    y = "Count",
+    title = "Q-score") +
+  theme(legend.position = "none",
+    strip.text = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank())
+```
+
+```{r}
+
+ggplot(gono_PBSIM3, aes(x = mean_qscore, y = actual_identity)) +
+  geom_point(alpha = 0.5, size = 1.5) +         
+  geom_smooth(method = "loess", se = FALSE) +       
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  labs(
+    title = "Q Score vs Actual Identity",
+    x = "Mean Phred Q Score",
+    y = "Actual Identity (%)"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "right",
+    panel.grid.major = element_line(color = "grey90"),
+    panel.grid.minor = element_line(color = "grey95")
+  )
+
+```
