@@ -11,58 +11,87 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(scales)
 
+
 setwd("~/Library/CloudStorage/OneDrive-TheUniversityofMelbourne/2025(Ingle_Postdoc)/ONT_read_simulator/ONT-Read-Simulator-Benchmarking")
 
 data <- read.csv("all_tools_stats.tsv", sep = "\t")
+
+all_tools <- unique(data$tool)
+
+# Make 'real_reads' first, then the rest
+tool_levels <- c("real_reads", setdiff(all_tools, "real_reads"))
+
+# Make nice labels: "Real reads" first, then keep others as-is or clean names
+tool_labels <- c("Real reads", setdiff(all_tools, "real_reads"))
+
+# Apply factor 
+data$tool <- factor(data$tool, levels = tool_levels, labels = tool_labels)
 
 ```
 
 ```{r}
 ggplot(data, aes(x = read_length, fill = tool)) +
   geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.8, position = "identity") +
-  facet_wrap(~tool, scales = "free_y") +
-  scale_x_continuous(labels = scales::comma, 
-                     limits = c(0, 100000)) +
+  geom_boxplot(outliers = FALSE) +
+  scale_x_continuous(labels = comma, limits = c(0, 100000)) +
+  facet_grid(tool ~ ., scales = "free_y", switch = "y") +
   theme_bw() +
-  labs(x = "Read length (bp)",
-    y = "Count",
-    title = "Read length distribution per simulation tool") +
-  theme(legend.position = "none",
-    strip.text = element_text(face = "bold"),
+  labs(
+    x = "Read length (bp)",
+    y = "",
+    title = "Read length distribution per simulation tool"
+  ) +
+  theme(
+    legend.position = "none",
+    strip.placement = "outside",
+    strip.background = element_blank(), 
+    strip.text.y.left = element_text(angle = 0, face = "bold"),
     axis.text.x = element_text(angle = 45, hjust = 1),
     axis.text.y = element_blank(),
-    axis.ticks.y = element_blank())
+    axis.ticks.y = element_blank()
+  )
 ```
 
 ```{r}
 ggplot(data, aes(x = actual_identity, fill = tool)) +
-  geom_histogram(binwidth = 0.01, alpha = 0.8, position = "identity") +
-  facet_wrap(~tool, scales = "free_y") +
+  geom_histogram(binwidth = 0.001, alpha = 0.8, position = "identity") +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0.7,1)) +
+  facet_grid(tool ~ ., scales = "free_y", switch = "y") +
   theme_bw() +
-  labs(x = "Percentage identity",
-    y = "Count",
-    title = "Read identities") +
-  theme(legend.position = "none",
-    strip.text = element_text(face = "bold"),
+  labs(
+    x = "Read identity",
+    y = "",
+    title = "Actual read identities"
+  ) +
+  theme(
+    legend.position = "none",
+    strip.placement = "outside",
+    strip.background = element_blank(), 
+    strip.text.y.left = element_text(angle = 0, face = "bold"),
     axis.text.x = element_text(angle = 45, hjust = 1),
     axis.text.y = element_blank(),
-    axis.ticks.y = element_blank())
+    axis.ticks.y = element_blank()
+  )
 ```
 
 ```{r}
 ggplot(data, aes(x = mean_qscore, fill = tool)) +
-  geom_histogram(binwidth = 1, alpha = 0.8, position = "identity") +
-  facet_wrap(~tool, scales = "free_y") +
-  scale_x_continuous(labels = scales::comma) +
+  geom_histogram(binwidth = 0.5, alpha = 0.8, position = "identity") +
+  facet_grid(tool ~ ., scales = "free_y", switch = "y") +
   theme_bw() +
-  labs(x = "Q-score",
+  scale_x_continuous(labels = scales::comma) +
+  labs(x = "Quality score",
     y = "Count",
-    title = "Q-score") +
-  theme(legend.position = "none",
-    strip.text = element_text(face = "bold"),
+    title = "Mean quality score per read") +
+  theme(
+    legend.position = "none",
+    strip.placement = "outside",
+    strip.background = element_blank(), 
+    strip.text.y.left = element_text(angle = 0, face = "bold"),
     axis.text.x = element_text(angle = 45, hjust = 1),
     axis.text.y = element_blank(),
-    axis.ticks.y = element_blank())
+    axis.ticks.y = element_blank()
+  )
 ```
 
 ```{r}
@@ -76,24 +105,46 @@ ggplot(data, aes(Identity_Qscore, fill = tool)) +
 
 ```
 
+Figure 4
+
 ```{r}
-ggplot(data, aes(x = mean_qscore, y = actual_identity, color = tool)) +
-  #geom_point(alpha = 0.5, size = 1.5) +     
-  geom_smooth(method = "loess", se = FALSE) +       
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
-  labs(
-    title = "Q Score vs Actual Identity per Tool",
-    x = "Mean Phred Q Score",
-    y = "Actual Identity (%)",
-    color = "Tool"
-  ) +
-  theme_minimal(base_size = 14) +
+ggplot(data, aes(y = actual_identity, x = mean_qscore)) +
+  geom_hex(bins = 100) +
+  scale_fill_viridis_c(option = "C") +
+  facet_grid(tool ~ ., scales = "free_y", switch = "y") +
+  theme_bw() +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0.5,1)) +
+  labs(y = "Actual identity", x = "Q score", title = "Actual identity vs Q score per tool") +
   theme(
-    legend.position = "right",
-    panel.grid.major = element_line(color = "grey90"),
-    panel.grid.minor = element_line(color = "grey95")
+    strip.placement = "outside",
+    strip.background = element_blank(), 
+    strip.text.y.left = element_text(angle = 0, face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
   )
 ```
+
+```{r}
+ggplot(data, aes(x = read_length, y = mean_qscore)) +
+  geom_hex(bins = 100) +
+  scale_fill_viridis_c(option = "C") +
+  facet_grid(tool ~ ., scales = "free_y", switch = "y") +  # stacked facets with side labels
+  theme_bw() +
+  scale_x_continuous(labels = scales::comma, limits = c(0, 100000)) +
+  labs(
+    x = "Read length (bp)",
+    y = "Q score",
+    title = "Q score vs read length per simulation tool"
+  ) +
+  theme(
+    legend.position = "right",
+    strip.placement = "outside",
+    strip.background = element_blank(),
+    strip.text.y.left = element_text(angle = 0, face = "bold")
+  )
+
+```
+
+#### gono test
 
 ```{r}
 gono_PBSIM3 <- read.csv("test_stats.tsv", sep = "\t")
