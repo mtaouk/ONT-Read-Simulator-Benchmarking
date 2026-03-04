@@ -10,206 +10,843 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(scales)
+library(patchwork)
 
 
 setwd("~/Library/CloudStorage/OneDrive-TheUniversityofMelbourne/2025(Ingle_Postdoc)/ONT_read_simulator/ONT-Read-Simulator-Benchmarking")
 
-data <- read.csv("all_tools_stats.tsv", sep = "\t")
+data <- read.csv("results/all_tools_stats.tsv", sep = "\t")
 
-all_tools <- unique(data$tool)
+data$Identity_Qscore <- -10 * log10(1 - data$actual_identity)
+data$Identity_Qscore <- pmin(data$Identity_Qscore, 50)
 
-# Make 'real_reads' first, then the rest
-tool_levels <- c("real_reads", setdiff(all_tools, "real_reads"))
+data <- data %>%
+  mutate(tool = recode(
+    tool,
+    "simlord" = "SimLoRD",
+    "real_reads" = "Real reads"
+  ))
 
-# Make nice labels: "Real reads" first, then keep others as-is or clean names
-tool_labels <- c("Real reads", setdiff(all_tools, "real_reads"))
+df_Badread <- data %>% filter(tool == "Badread")
+df_LongISLND <- data %>% filter(tool == "LongISLND")
+df_lrsim <- data %>% filter(tool == "lrsim")
+df_NanoSim <- data %>% filter(tool == "NanoSim")
+df_PBSIM3 <- data %>% filter(tool == "PBSIM3")
+df_SimLoRD <- data %>% filter(tool == "SimLoRD")
+df_Real_reads <- data %>% filter(tool == "Real reads")
 
-# Apply factor 
-data$tool <- factor(data$tool, levels = tool_levels, labels = tool_labels)
 
 ```
 
 ```{r}
-ggplot(data, aes(x = read_length, fill = tool)) +
-  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.8, position = "identity") +
-  geom_boxplot(outliers = FALSE) +
+plot_Badread <- ggplot(df_Badread, aes(x = read_length)) +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = "#00b0be") +
   scale_x_continuous(labels = comma, limits = c(0, 100000)) +
-  facet_grid(tool ~ ., scales = "free_y", switch = "y") +
   theme_bw() +
   labs(
-    x = "Read length (bp)",
+    x = "",
     y = "",
-    title = "Read length distribution per simulation tool"
+    title = "Badread"
   ) +
   theme(
-    legend.position = "none",
-    strip.placement = "outside",
-    strip.background = element_blank(), 
-    strip.text.y.left = element_text(angle = 0, face = "bold"),
-    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
+    axis.ticks.x = element_line(colour = "white"),
     axis.text.y = element_blank(),
-    axis.ticks.y = element_blank()
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
   )
-```
 
-```{r}
-ggplot(data, aes(x = actual_identity, fill = tool)) +
-  geom_histogram(binwidth = 0.001, alpha = 0.8, position = "identity") +
-  scale_x_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0.7,1)) +
-  facet_grid(tool ~ ., scales = "free_y", switch = "y") +
+plot_LongISLND <- ggplot(df_LongISLND, aes(x = read_length)) +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = "#8fd7d7") +
+  scale_x_continuous(labels = comma, limits = c(0, 100000)) +
   theme_bw() +
   labs(
-    x = "Read identity",
+    x = "",
     y = "",
-    title = "Actual read identities"
+    title = "LongISLND"
   ) +
   theme(
-    legend.position = "none",
-    strip.placement = "outside",
-    strip.background = element_blank(), 
-    strip.text.y.left = element_text(angle = 0, face = "bold"),
-    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
+    axis.ticks.x = element_line(colour = "white"),
     axis.text.y = element_blank(),
-    axis.ticks.y = element_blank()
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
   )
-```
 
-```{r}
-ggplot(data, aes(x = mean_qscore, fill = tool)) +
-  geom_histogram(binwidth = 0.5, alpha = 0.8, position = "identity") +
-  facet_grid(tool ~ ., scales = "free_y", switch = "y") +
+plot_lrsim <- ggplot(df_lrsim, aes(x = read_length)) +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = "#f45f74") +
+  scale_x_continuous(labels = comma, limits = c(0, 100000)) +
   theme_bw() +
-  scale_x_continuous(labels = scales::comma) +
-  labs(x = "Quality score",
+  labs(
+    x = "",
     y = "Count",
-    title = "Mean quality score per read") +
-  theme(
-    legend.position = "none",
-    strip.placement = "outside",
-    strip.background = element_blank(), 
-    strip.text.y.left = element_text(angle = 0, face = "bold"),
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    axis.text.y = element_blank(),
-    axis.ticks.y = element_blank()
-  )
-```
-
-```{r}
-
-data$Identity_Qscore <- -10 * log10(pmax(1 - data$actual_identity, 1e-10))
-
-ggplot(data, aes(Identity_Qscore, fill = tool)) +
-  geom_histogram() +
-  facet_wrap(~ tool)
-
-
-```
-
-Figure 4
-
-```{r}
-ggplot(data, aes(y = actual_identity, x = mean_qscore)) +
-  geom_hex(bins = 100) +
-  scale_fill_viridis_c(option = "C") +
-  facet_grid(tool ~ ., scales = "free_y", switch = "y") +
-  theme_bw() +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0.5,1)) +
-  labs(y = "Actual identity", x = "Q score", title = "Actual identity vs Q score per tool") +
-  theme(
-    strip.placement = "outside",
-    strip.background = element_blank(), 
-    strip.text.y.left = element_text(angle = 0, face = "bold"),
-    axis.text.x = element_text(angle = 45, hjust = 1),
-  )
-```
-
-```{r}
-ggplot(data, aes(x = read_length, y = mean_qscore)) +
-  geom_hex(bins = 100) +
-  scale_fill_viridis_c(option = "C") +
-  facet_grid(tool ~ ., scales = "free_y", switch = "y") +  # stacked facets with side labels
-  theme_bw() +
-  scale_x_continuous(labels = scales::comma, limits = c(0, 100000)) +
-  labs(
-    x = "Read length (bp)",
-    y = "Q score",
-    title = "Q score vs read length per simulation tool"
+    title = "lrsim"
   ) +
   theme(
-    legend.position = "right",
-    strip.placement = "outside",
+    axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
+    axis.ticks.x = element_line(colour = "white"),,
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  )
+
+plot_NanoSim <- ggplot(df_NanoSim, aes(x = read_length)) +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = "#ff8cae") +
+  scale_x_continuous(labels = comma, limits = c(0, 100000)) +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+    title = "NanoSim"
+  ) +
+  theme(
+    axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
+    axis.ticks.x = element_line(colour = "white"),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  )
+
+plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = read_length)) +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = "#98c127") +
+  scale_x_continuous(labels = comma, limits = c(0, 100000)) +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+    title = "PBSIM3"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  )
+
+plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = read_length)) +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = "#bdd373") +
+  scale_x_continuous(labels = comma, limits = c(0, 100000)) +
+  theme_bw() +
+  labs(
+    x = "Read length (bp)",
+    y = "",
+    title = "SimLoRD"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  )
+
+plot_real <- ggplot(df_Real_reads, aes(x = read_length)) +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = "#ffb255") +
+  scale_x_continuous(labels = comma, limits = c(0, 100000)) +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+    title = "Real reads"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  )
+
+figure_1 <- (
+  (plot_Badread + plot_LongISLND + plot_spacer()) / 
+  (plot_lrsim + plot_NanoSim + plot_real) /
+  (plot_PBSIM3 + plot_SimLoRD + plot_spacer())) +
+  plot_annotation(title = "Read length distribution for each simulation tool")
+
+ggsave(
+  "figure_1.pdf",
+  figure_1,
+  height  = 160,
+  width = 200,
+  units  = "mm",
+  device = "pdf"
+)
+
+figure_1
+```
+
+```{r}
+plot_Badread <- ggplot(df_Badread, aes(x = Identity_Qscore)) +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#00b0be") +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+    title = "Badread"
+  ) +
+  theme(
+    axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
+    axis.ticks.x = element_line(colour = "white"),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  )
+
+plot_LongISLND <- ggplot(df_LongISLND, aes(x = Identity_Qscore)) +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#8fd7d7") +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+    title = "LongISLND"
+  ) +
+  theme(
+    axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
+    axis.ticks.x = element_line(colour = "white"),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  )
+
+plot_lrsim <- ggplot(df_lrsim, aes(x = Identity_Qscore)) +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#f45f74") +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "Count",
+    title = "lrsim"
+  ) +
+  theme(
+    axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
+    axis.ticks.x = element_line(colour = "white"),,
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  )
+
+plot_NanoSim <- ggplot(df_NanoSim, aes(x = Identity_Qscore)) +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#ff8cae") +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+    title = "NanoSim"
+  ) +
+  theme(
+    axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
+    axis.ticks.x = element_line(colour = "white"),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  )
+
+plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = Identity_Qscore)) +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#98c127") +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+    title = "PBSIM3"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  )
+
+plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = Identity_Qscore)) +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#bdd373") +
+  theme_bw() +
+  labs(
+    x = "Mean identity-derived quality score (per read)",
+    y = "",
+    title = "SimLoRD"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  )
+
+plot_real <- ggplot(df_Real_reads, aes(x = Identity_Qscore)) +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#ffb255") +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+    title = "Real reads"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  )
+
+figure_2 <- (
+  (plot_Badread + plot_LongISLND + plot_spacer()) / 
+  (plot_lrsim + plot_NanoSim + plot_real) /
+  (plot_PBSIM3 + plot_SimLoRD + plot_spacer())) +
+  plot_annotation(title = "Mean identity-derived quality score per read for each tool")
+
+ggsave(
+  "figure_2.pdf",
+  figure_2,
+  height  = 160,
+  width = 200,
+  units  = "mm",
+  device = "pdf"
+)
+
+figure_2
+```
+
+```{r}
+plot_Badread <- ggplot(df_Badread, aes(x = mean_qscore)) +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#00b0be") +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+    title = "Badread"
+  ) +
+  theme(
+    axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
+    axis.ticks.x = element_line(colour = "white"),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  ) +
+  scale_x_continuous(limits = c(0, 50))
+
+plot_LongISLND <- ggplot(df_LongISLND, aes(x = mean_qscore)) +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#8fd7d7") +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+    title = "LongISLND"
+  ) +
+  theme(
+    axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
+    axis.ticks.x = element_line(colour = "white"),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  ) +
+  scale_x_continuous(limits = c(0, 50))
+
+plot_lrsim <- ggplot(df_lrsim, aes(x = mean_qscore)) +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#f45f74") +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "Count",
+    title = "lrsim"
+  ) +
+  theme(
+    axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
+    axis.ticks.x = element_line(colour = "white"),,
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  ) +
+  scale_x_continuous(limits = c(0, 50))
+
+plot_NanoSim <- ggplot(df_NanoSim, aes(x = mean_qscore)) +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#ff8cae") +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+    title = "NanoSim"
+  ) +
+  theme(
+    axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
+    axis.ticks.x = element_line(colour = "white"),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  ) +
+  scale_x_continuous(limits = c(0, 50))
+
+plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = mean_qscore)) +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#98c127") +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+    title = "PBSIM3"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  ) +
+  scale_x_continuous(limits = c(0, 50))
+
+plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = mean_qscore)) +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#bdd373") +
+  theme_bw() +
+  labs(
+    x = "Mean quality score (per read)",
+    y = "",
+    title = "SimLoRD"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  ) +
+  scale_x_continuous(limits = c(0, 50))
+
+plot_real <- ggplot(df_Real_reads, aes(x = mean_qscore)) +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#ffb255") +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+    title = "Real reads"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  ) +
+  scale_x_continuous(limits = c(0, 50))
+
+figure_3 <- (
+  (plot_Badread + plot_LongISLND + plot_spacer()) / 
+  (plot_lrsim + plot_NanoSim + plot_real) /
+  (plot_PBSIM3 + plot_SimLoRD + plot_spacer())) +
+  plot_annotation(title = "Mean quality score for each tool")
+
+ggsave(
+  "figure_3.pdf",
+  figure_3,
+  height  = 160,
+  width = 200,
+  units  = "mm",
+  device = "pdf"
+)
+
+figure_3
+```
+
+```{r}
+plot_Badread <- ggplot(df_Badread, aes(x = mean_qscore, y = Identity_Qscore)) +
+  geom_point(alpha = 0.01, colour = "#00b0be", fill = "#00b0be", size = 0.5 ) +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+    title = "Badread"
+  ) +
+  theme(
+    axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
+    axis.ticks.x = element_line(colour = "white"),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white")) +
+  scale_x_continuous(limits = c(0, 50))
+
+plot_LongISLND <- ggplot(df_LongISLND, aes(x = mean_qscore, y = Identity_Qscore)) +
+  geom_point(alpha = 0.01, colour = "#00b0be", fill = "#00b0be", size = 0.5 ) +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+    title = "LongISLND"
+  ) +
+  theme(
+    axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
+    axis.ticks.x = element_line(colour = "white"),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white")
+  ) +
+  scale_x_continuous(limits = c(0, 50))
+
+plot_lrsim <- ggplot(df_lrsim, aes(x = mean_qscore, y = Identity_Qscore)) +
+  geom_point(alpha = 0.01, colour = "#00b0be", fill = "#00b0be", size = 0.5 ) +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "Mean identity-derived\nquality score (per read)",
+    title = "lrsim"
+  ) +
+  theme(
+    axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
+    axis.ticks.x = element_line(colour = "white"),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white")
+  ) +
+  scale_x_continuous(limits = c(0, 50))
+
+plot_NanoSim <- ggplot(df_NanoSim, aes(x = mean_qscore, y = Identity_Qscore)) +
+  geom_point(alpha = 0.01, colour = "#00b0be", fill = "#00b0be", size = 0.5 ) +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+    title = "NanoSim"
+  ) +
+  theme(
+    axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
+    axis.ticks.x = element_line(colour = "white"),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white")
+  ) +
+  scale_x_continuous(limits = c(0, 50))
+
+plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = mean_qscore, y = Identity_Qscore)) +
+  geom_point(alpha = 0.01, colour = "#00b0be", fill = "#00b0be", size = 0.5 ) +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+    title = "PBSIM3"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white")
+  ) +
+  scale_x_continuous(limits = c(0, 50))
+
+plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = mean_qscore, y = Identity_Qscore)) +
+  geom_point(alpha = 0.01, colour = "#00b0be", fill = "#00b0be", size = 0.5 ) +
+  theme_bw() +
+  labs(
+    x = "Mean quality score (per read)",
+    y = "",
+    title = "SimLoRD"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white")) +
+  scale_x_continuous(limits = c(0, 50))
+
+plot_real <- ggplot(df_Real_reads, aes(x = mean_qscore, y = Identity_Qscore)) +
+  geom_point(alpha = 0.01, colour = "#00b0be", fill = "#00b0be", size = 0.5 ) +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+    title = "Real reads"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    panel.background = element_rect(fill = "white")
+  ) +
+  scale_x_continuous(limits = c(0, 50))
+
+figure_4 <- (
+  (plot_Badread + plot_LongISLND + plot_spacer()) / 
+  (plot_lrsim + plot_NanoSim + plot_real) /
+  (plot_PBSIM3 + plot_SimLoRD + plot_spacer())) +
+  plot_annotation(title = "Mean identitiy derived quality score vs empicrical quality score for each tool")
+
+ggsave(
+  "figure_4.pdf",
+  figure_4,
+  height  = 160,
+  width = 200,
+  units  = "mm",
+  device = "pdf"
+)
+
+figure_4
+```
+
+```{r}
+
+files <- tribble(
+  ~tool,        ~file,
+  "Real reads", "results/real.qscore_counts.tsv",
+  "Badread",    "results/Badread.qscore_counts.tsv",
+  "LongISLND",  "results/LongISLND.qscore_counts.tsv",
+  "lrsim",      "results/lrsim.qscore_counts.tsv",
+  "NanoSim",    "results/NanoSim.qscore_counts.tsv",
+  "PBSIM3",     "results/PBSIM3.qscore_counts.tsv",
+  "simlord",    "results/simlord.qscore_counts.tsv"
+)
+
+per_base <- files %>%
+  mutate(data = map(file, ~ read_tsv(.x, show_col_types = FALSE))) %>%
+  unnest(data) %>%
+  mutate(
+    all_errors   = mismatch + insertion + deletion,
+    total        = all_errors + match,
+    error_rate   = all_errors / total,
+    error_qscore = -10 * log10(error_rate)
+  ) %>%
+  filter(!is.na(total) & total > 0) %>%
+  mutate(
+    tool = factor(
+      tool,
+      levels = c("Real reads", setdiff(unique(tool), "Real reads"))
+    )
+  )
+
+max_q <- max(per_base$qscore, na.rm = TRUE)
+
+per_base <- per_base %>%
+  mutate(tool = recode(
+    tool,
+    "simlord" = "SimLoRD",
+    "real_reads" = "Real reads"
+  ))
+
+per_base_sim <- per_base %>% filter(tool != "Real reads")
+per_base_real <- per_base %>% filter(tool == "Real reads")
+```
+
+```{r}
+# Plot for the six simulation tools
+p_sim_correct <- ggplot(per_base_sim, aes(x = qscore, y = match)) +
+  geom_col(aes(fill = tool), width = 1) +
+  facet_wrap(~tool, scales = "free_y", nrow = 3) +
+  theme_bw() +
+  labs(
+    x = "Q score",
+    y = "",
+    title = "A. Correct base Q score histogram"
+  ) +
+  theme(
+    legend.position = "none",
     strip.background = element_blank(),
-    strip.text.y.left = element_text(angle = 0, face = "bold")
-  )
-
-```
-
-#### gono test
-
-```{r}
-gono_PBSIM3 <- read.csv("test_stats.tsv", sep = "\t")
-
-ggplot(gono_PBSIM3, aes(x = read_length)) +
-  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.8, position = "identity") +
-  scale_x_continuous(labels = scales::comma, 
-                     limits = c(0, 100000)) +
-  theme_bw() +
-  labs(x = "Read length (bp)",
-    y = "Count",
-    title = "Read length distribution") +
-  theme(legend.position = "none",
-    strip.text = element_text(face = "bold"),
     axis.text.x = element_text(angle = 45, hjust = 1),
     axis.text.y = element_blank(),
-    axis.ticks.y = element_blank())
+    axis.ticks.y = element_blank()) +
+  scale_x_continuous(limits = c(0, 80), expand = expansion(add = 1)) +
+  scale_fill_manual(values = c('#00b0be','#8fd7d7','#f45f74','#ff8cae','#98c127','#bdd373'))
 
-```
-
-```{r}
-ggplot(gono_PBSIM3, aes(x = actual_identity)) +
-  geom_histogram(binwidth = 0.01, alpha = 0.8, position = "identity") +
+# Plot for real reads with a fake facet label on top
+p_real_correct <- ggplot(per_base_real, aes(x = qscore, y = match)) +
+  geom_col(fill = "#ffb255", width = 1) +
+  facet_wrap(~tool, scales = "free_y", nrow = 3) +
   theme_bw() +
-  labs(x = "Percentage identity",
-    y = "Count",
-    title = "Read identities") +
-  theme(legend.position = "none",
-    strip.text = element_text(face = "bold"),
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    axis.text.y = element_blank(),
-    axis.ticks.y = element_blank())
-```
-
-```{r}
-ggplot(gono_PBSIM3, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.8, position = "identity") +
-  scale_x_continuous(labels = scales::comma) +
-  theme_bw() +
-  labs(x = "Q-score",
-    y = "Count",
-    title = "Q-score") +
-  theme(legend.position = "none",
-    strip.text = element_text(face = "bold"),
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    axis.text.y = element_blank(),
-    axis.ticks.y = element_blank())
-```
-
-```{r}
-
-ggplot(gono_PBSIM3, aes(x = mean_qscore, y = actual_identity)) +
-  geom_point(alpha = 0.5, size = 1.5) +         
-  geom_smooth(method = "loess", se = FALSE) +       
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
   labs(
-    title = "Q Score vs Actual Identity",
-    x = "Mean Phred Q Score",
-    y = "Actual Identity (%)"
+    x = "",
+    y = "",
   ) +
-  theme_minimal(base_size = 14) +
   theme(
-    legend.position = "right",
-    panel.grid.major = element_line(color = "grey90"),
-    panel.grid.minor = element_line(color = "grey95")
+    legend.position = "none",
+    strip.background = element_blank(),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()) +
+  scale_x_continuous(limits = c(0, 80), expand = expansion(add = 1))
+
+# Combine: sim facets on left, real reads + blank on right stacked
+right_col <- (plot_spacer() / p_real_correct / plot_spacer()) +
+  plot_layout(heights = c(0.73, 0.77, 0.50))
+
+A <- (p_sim_correct | right_col) +
+  plot_layout(widths = c(2, 1))
+```
+
+```{r}
+# Plot for the six simulation tools
+p_sim_error <- ggplot(per_base_sim, aes(x = qscore, y = all_errors)) +
+  geom_col(aes(fill = tool), width = 1) +
+  facet_wrap(~tool, scales = "free_y", nrow = 3) +
+  theme_bw() +
+  labs(
+    x = "Q score",
+    y = "Count",
+    title = "B. Error base Q score histogram"
+  ) +
+  theme(
+    legend.position = "none",
+    strip.background = element_blank(),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()) +
+  scale_x_continuous(limits = c(0, 80), expand = expansion(add = 1)) +
+  scale_fill_manual(values = c('#00b0be','#8fd7d7','#f45f74','#ff8cae','#98c127','#bdd373'))
+
+# Plot for real reads with a fake facet label on top
+p_real_error <- ggplot(per_base_real, aes(x = qscore, y = all_errors)) +
+  geom_col(fill = "#ffb255", width = 1) +
+  facet_wrap(~tool, scales = "free_y", nrow = 3) +
+  theme_bw() +
+  labs(
+    x = "",
+    y = "",
+  ) +
+  theme(
+    legend.position = "none",
+    strip.background = element_blank(),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()) +
+  scale_x_continuous(limits = c(0, 80), expand = expansion(add = 1))
+
+# Combine: sim facets on left, real reads + blank on right stacked
+right_col <- (plot_spacer() / p_real_error / plot_spacer()) +
+  plot_layout(heights = c(0.73, 0.77, 0.50))
+
+B <- (p_sim_error | right_col) +
+  plot_layout(widths = c(2, 1))
+```
+
+```{r}
+p_sim_cal <- ggplot(per_base_sim, aes(x = qscore, y = error_qscore)) +
+  geom_abline(
+    intercept = 0,
+    slope = 1,
+    linetype = "dashed",
+    colour = "grey70"
+  ) +
+  geom_point(
+    aes(colour = tool),
+    alpha = 0.8,
+    size = 2
+  ) +
+  facet_wrap(~tool, scales = "free", nrow = 3) +
+  theme_bw() +
+  labs(
+    x = "Actual Q score",
+    y = "Identity derived Q score",
+    title = "C. Per-base Q score calibration"
+  ) +
+  scale_x_continuous(limits = c(0, max_q)) +
+  scale_y_continuous(limits = c(0, max_q)) +
+  scale_colour_manual(
+    values = c('#00b0be','#8fd7d7','#f45f74','#ff8cae','#98c127','#bdd373')
+  ) +
+  theme(
+    legend.position = "none",
+    strip.background = element_blank(),
+    axis.text.x = element_text(angle = 45, hjust = 1)
   )
 
+p_real_cal <- ggplot(per_base_real, aes(x = qscore, y = error_qscore)) +
+  geom_abline(
+    intercept = 0,
+    slope = 1,
+    linetype = "dashed",
+    colour = "grey70"
+  ) +
+  geom_point(
+    colour = "#ffb255",
+    alpha = 0.8,
+    size = 2
+  ) +
+  theme_bw() +
+  labs(
+    x = "",
+    y = ""
+  ) +
+  scale_x_continuous(limits = c(0, max_q)) +
+  scale_y_continuous(limits = c(0, max_q)) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5, size = 9),
+    strip.background = element_blank()
+  ) +
+  ggtitle("Real reads")
+
+right_col_cal <- (plot_spacer() / p_real_cal / plot_spacer()) +
+  plot_layout(heights = c(0.71, 0.50, 0.50))
+
+C <- (p_sim_cal | right_col_cal) +
+  plot_layout(widths = c(2, 1))
+
+
+```
+
+```{r, fig.height= 14, fig.width= 7}
+supplementary_1 <- A/B/C
+
+ggsave(
+  "supplementary_1.pdf",
+  supplementary_1,
+  height  = 400,
+  width = 200,
+  units  = "mm",
+  device = "pdf"
+)
+
+supplementary_1
 ```

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-OUTDIR="/home/taouk/ONT_read_sim/unicycler_assemblies"
+OUTDIR="/home/taouk/ONT_read_sim/flye_assemblies"
 mkdir -p "$OUTDIR"
 
 declare -A reads=(
@@ -15,10 +15,10 @@ declare -A reads=(
 
 for name in "${!reads[@]}"; do
   echo "Assembling $name..."
-  unicycler \
-    -l "${reads[$name]}" \
+  flye \
+    --nano-hq \
+    "${reads[$name]}" \
     -o "$OUTDIR/$name" \
-    --mode bold \
     --threads 30 &
 done
 
