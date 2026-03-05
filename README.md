@@ -46,7 +46,8 @@ zcat Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz \
 
 The following is the code I used for each read simulator tool to
 generate the reads, including installation and any preparation steps.
-YML files for each conda environments are available in environments
+YAML files for each conda environment used in the following code is
+available in Environments
 
 ### Nanosim
 
