@@ -39,9 +39,9 @@ zcat Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz \
 
 ### NANOSIM
 
-# was getting a weird error because header names were too long
 conda activate nanosim 
 
+# was getting a weird error because header names were too long
 zcat /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz \
 | awk 'NR%4==1{sub(/^@.*/,"@"NR/4)}1' \
 | gzip > /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_shortnames.fastq.gz
