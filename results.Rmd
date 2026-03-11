@@ -12,9 +12,6 @@ library(tidyverse)
 library(scales)
 library(patchwork)
 
-
-setwd("~/Library/CloudStorage/OneDrive-TheUniversityofMelbourne/2025(Ingle_Postdoc)/ONT_read_simulator/ONT-Read-Simulator-Benchmarking")
-
 data <- read.csv("results/all_tools_stats.tsv", sep = "\t")
 
 data$Identity_Qscore <- -10 * log10(1 - data$actual_identity)
@@ -34,8 +31,6 @@ df_NanoSim <- data %>% filter(tool == "NanoSim")
 df_PBSIM3 <- data %>% filter(tool == "PBSIM3")
 df_SimLoRD <- data %>% filter(tool == "SimLoRD")
 df_Real_reads <- data %>% filter(tool == "Real reads")
-
-
 ```
 
 ```{r}
