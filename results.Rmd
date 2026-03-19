@@ -178,7 +178,7 @@ figure_1 <- (
   plot_annotation(title = "Read length distribution for each simulation tool")
 
 ggsave(
-  "figure_1.pdf",
+  "figures/figure_1.pdf",
   figure_1,
   height  = 160,
   width = 200,
@@ -327,7 +327,7 @@ figure_2 <- (
   plot_annotation(title = "Mean identity-derived quality score per read for each tool")
 
 ggsave(
-  "figure_2.pdf",
+  "figures/figure_2.pdf",
   figure_2,
   height  = 160,
   width = 200,
@@ -483,7 +483,7 @@ figure_3 <- (
   plot_annotation(title = "Mean quality score for each tool")
 
 ggsave(
-  "figure_3.pdf",
+  "figures/figure_3.pdf",
   figure_3,
   height  = 160,
   width = 200,
@@ -617,7 +617,7 @@ figure_4 <- (
   plot_annotation(title = "Mean identitiy derived quality score vs empicrical quality score for each tool")
 
 ggsave(
-  "figure_4.pdf",
+  "figures/figure_4.pdf",
   figure_4,
   height  = 160,
   width = 200,
@@ -835,7 +835,7 @@ C <- (p_sim_cal | right_col_cal) +
 supplementary_1 <- A/B/C
 
 ggsave(
-  "supplementary_1.pdf",
+  "figures/figure_s1.pdf",
   supplementary_1,
   height  = 400,
   width = 200,
