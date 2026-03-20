@@ -226,49 +226,49 @@ make_tool_matrix <- function(plots, title, align, axis) {
 
 ```{r}
 plot_Badread <- ggplot(df_Badread, aes(x = read_length)) +
-  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = badread_colour) +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, position = "identity", fill = badread_colour, colour = badread_colour, linewidth = 0.15) +
   read_length_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "Badread") +
   histogram_hidden_x_theme
 
 plot_LongISLND <- ggplot(df_LongISLND, aes(x = read_length)) +
-  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = longislnd_colour) +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, position = "identity", fill = longislnd_colour, colour = longislnd_colour, linewidth = 0.15) +
   read_length_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "LongISLND") +
   histogram_hidden_x_theme
 
 plot_lrsim <- ggplot(df_lrsim, aes(x = read_length)) +
-  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = lrsim_colour) +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, position = "identity", fill = lrsim_colour, colour = lrsim_colour, linewidth = 0.15) +
   read_length_x_scale() +
   count_y_scale() +
   labs(x = "", y = "Count", title = "lrsim") +
   histogram_hidden_x_theme
 
 plot_NanoSim <- ggplot(df_NanoSim, aes(x = read_length)) +
-  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = nanosim_colour) +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, position = "identity", fill = nanosim_colour, colour = nanosim_colour, linewidth = 0.15) +
   read_length_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "NanoSim") +
   histogram_hidden_x_theme
 
 plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = read_length)) +
-  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = pbsim3_colour) +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, position = "identity", fill = pbsim3_colour, colour = pbsim3_colour, linewidth = 0.15) +
   read_length_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "PBSIM3") +
   histogram_visible_x_theme
 
 plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = read_length)) +
-  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = simlord_colour) +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, position = "identity", fill = simlord_colour, colour = simlord_colour, linewidth = 0.15) +
   read_length_x_scale() +
   count_y_scale() +
   labs(x = "Read length (kbp)", y = "", title = "SimLoRD") +
   histogram_visible_x_theme
 
 plot_real <- ggplot(df_Real_reads, aes(x = read_length)) +
-  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = real_reads_colour) +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.15) +
   read_length_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "Real reads") +
@@ -299,42 +299,42 @@ figure_1
 
 ```{r}
 plot_Badread <- ggplot(df_Badread, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = badread_colour) +
+  geom_histogram(binwidth = 1, position = "identity", fill = badread_colour, colour = badread_colour, linewidth = 0.15) +
   identity_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "Badread") +
   histogram_hidden_x_theme
 
 plot_LongISLND <- ggplot(df_LongISLND, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = longislnd_colour) +
+  geom_histogram(binwidth = 1, position = "identity", fill = longislnd_colour, colour = longislnd_colour, linewidth = 0.15) +
   identity_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "LongISLND") +
   histogram_hidden_x_theme
 
 plot_lrsim <- ggplot(df_lrsim, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = lrsim_colour) +
+  geom_histogram(binwidth = 1, position = "identity", fill = lrsim_colour, colour = lrsim_colour, linewidth = 0.15) +
   identity_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "Count", title = "lrsim") +
   histogram_hidden_x_theme
 
 plot_NanoSim <- ggplot(df_NanoSim, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = nanosim_colour) +
+  geom_histogram(binwidth = 1, position = "identity", fill = nanosim_colour, colour = nanosim_colour, linewidth = 0.15) +
   identity_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "NanoSim") +
   histogram_hidden_x_theme
 
 plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = pbsim3_colour) +
+  geom_histogram(binwidth = 1, position = "identity", fill = pbsim3_colour, colour = pbsim3_colour, linewidth = 0.15) +
   identity_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "PBSIM3") +
   histogram_visible_x_theme
 
 plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = simlord_colour) +
+  geom_histogram(binwidth = 1, position = "identity", fill = simlord_colour, colour = simlord_colour, linewidth = 0.15) +
   identity_qscore_x_scale() +
   count_y_scale() +
   labs(
@@ -345,7 +345,7 @@ plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = Identity_Qscore)) +
   histogram_visible_x_theme
 
 plot_real <- ggplot(df_Real_reads, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = real_reads_colour) +
+  geom_histogram(binwidth = 1, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.15) +
   identity_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "Real reads") +
@@ -376,49 +376,49 @@ figure_2
 
 ```{r}
 plot_Badread <- ggplot(df_Badread, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = badread_colour) +
+  geom_histogram(binwidth = 1, position = "identity", fill = badread_colour, colour = badread_colour, linewidth = 0.15) +
   mean_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "Badread") +
   histogram_hidden_x_theme
 
 plot_LongISLND <- ggplot(df_LongISLND, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = longislnd_colour) +
+  geom_histogram(binwidth = 1, position = "identity", fill = longislnd_colour, colour = longislnd_colour, linewidth = 0.15) +
   mean_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "LongISLND") +
   histogram_hidden_x_theme
 
 plot_lrsim <- ggplot(df_lrsim, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = lrsim_colour) +
+  geom_histogram(binwidth = 1, position = "identity", fill = lrsim_colour, colour = lrsim_colour, linewidth = 0.15) +
   mean_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "Count", title = "lrsim") +
   histogram_hidden_x_theme
 
 plot_NanoSim <- ggplot(df_NanoSim, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = nanosim_colour) +
+  geom_histogram(binwidth = 1, position = "identity", fill = nanosim_colour, colour = nanosim_colour, linewidth = 0.15) +
   mean_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "NanoSim") +
   histogram_hidden_x_theme
 
 plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = pbsim3_colour) +
+  geom_histogram(binwidth = 1, position = "identity", fill = pbsim3_colour, colour = pbsim3_colour, linewidth = 0.15) +
   mean_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "PBSIM3") +
   histogram_visible_x_theme
 
 plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = simlord_colour) +
+  geom_histogram(binwidth = 1, position = "identity", fill = simlord_colour, colour = simlord_colour, linewidth = 0.15) +
   mean_qscore_x_scale() +
   count_y_scale() +
   labs(x = "Mean quality score (per read)", y = "", title = "SimLoRD") +
   histogram_visible_x_theme
 
 plot_real <- ggplot(df_Real_reads, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = real_reads_colour) +
+  geom_histogram(binwidth = 1, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.15) +
   mean_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "Real reads") +
@@ -576,7 +576,7 @@ per_base_real <- per_base %>% filter(tool == "Real reads")
 ```{r}
 # Plot for the six simulation tools
 p_sim_correct <- ggplot(per_base_sim, aes(x = qscore, y = match)) +
-  geom_col(aes(fill = tool), width = 1) +
+  geom_col(aes(fill = tool, colour = after_scale(fill)), width = 1, linewidth = 0.15) +
   facet_wrap(~tool, scales = "free_y", nrow = 3) +
   labs(x = "Q score", y = "", title = "A. Correct base Q score histogram") +
   supplementary_facet_theme +
@@ -586,7 +586,7 @@ p_sim_correct <- ggplot(per_base_sim, aes(x = qscore, y = match)) +
 
 # Plot for real reads with a fake facet label on top
 p_real_correct <- ggplot(per_base_real, aes(x = qscore, y = match)) +
-  geom_col(fill = real_reads_colour, width = 1) +
+  geom_col(fill = real_reads_colour, colour = real_reads_colour, width = 1, linewidth = 0.15) +
   facet_wrap(~tool, scales = "free_y", nrow = 3) +
   labs(x = "", y = "") +
   supplementary_facet_theme +
@@ -615,7 +615,7 @@ A <- plot_grid(
 ```{r}
 # Plot for the six simulation tools
 p_sim_error <- ggplot(per_base_sim, aes(x = qscore, y = all_errors)) +
-  geom_col(aes(fill = tool), width = 1) +
+  geom_col(aes(fill = tool, colour = after_scale(fill)), width = 1, linewidth = 0.15) +
   facet_wrap(~tool, scales = "free_y", nrow = 3) +
   labs(x = "Q score", y = "Count", title = "B. Error base Q score histogram") +
   supplementary_facet_no_y_grid_theme +
@@ -625,7 +625,7 @@ p_sim_error <- ggplot(per_base_sim, aes(x = qscore, y = all_errors)) +
 
 # Plot for real reads with a fake facet label on top
 p_real_error <- ggplot(per_base_real, aes(x = qscore, y = all_errors)) +
-  geom_col(fill = real_reads_colour, width = 1) +
+  geom_col(fill = real_reads_colour, colour = real_reads_colour, width = 1, linewidth = 0.15) +
   facet_wrap(~tool, scales = "free_y", nrow = 3) +
   labs(x = "", y = "") +
   supplementary_facet_no_y_grid_theme +
