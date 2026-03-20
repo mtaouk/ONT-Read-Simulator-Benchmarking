@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(scales)
-library(patchwork)
+library(cowplot)
 
 data <- read.csv("results/all_tools_stats.tsv", sep = "\t")
 
@@ -59,6 +59,7 @@ histogram_panel_theme <- theme_bw() + theme(
   axis.text.y = element_blank(),
   axis.ticks.y = element_blank(),
   plot.title = element_text(hjust = 0.5, size = 9),
+  plot.margin = margin(2, 2, 2, 2),
   panel.background = element_rect(fill = "white"),
   panel.grid.major.y = element_blank(),
   panel.grid.minor.y = element_blank()
@@ -75,6 +76,7 @@ histogram_visible_x_theme <- histogram_panel_theme + theme(
 
 scatter_panel_theme <- theme_bw() + theme(
   plot.title = element_text(hjust = 0.5, size = 9),
+  plot.margin = margin(2, 2, 2, 2),
   panel.background = element_rect(fill = "white")
 )
 
@@ -102,7 +104,8 @@ supplementary_facet_theme <- theme_bw() + theme(
   strip.background = element_blank(),
   axis.text.x = element_text(angle = 45, hjust = 1),
   axis.text.y = element_blank(),
-  axis.ticks.y = element_blank()
+  axis.ticks.y = element_blank(),
+  plot.margin = margin(2, 2, 2, 2)
 )
 
 supplementary_facet_no_y_grid_theme <- supplementary_facet_theme + theme(
@@ -113,14 +116,39 @@ supplementary_facet_no_y_grid_theme <- supplementary_facet_theme + theme(
 supplementary_calibration_theme <- theme_bw() + theme(
   legend.position = "none",
   strip.background = element_blank(),
-  axis.text.x = element_text(angle = 45, hjust = 1)
+  axis.text.x = element_text(angle = 45, hjust = 1),
+  plot.margin = margin(2, 2, 2, 2)
 )
 
 supplementary_real_calibration_theme <- theme_bw() + theme(
   axis.text.x = element_text(angle = 45, hjust = 1),
   plot.title = element_text(hjust = 0.5, size = 9),
-  strip.background = element_blank()
+  strip.background = element_blank(),
+  plot.margin = margin(2, 2, 2, 2)
 )
+```
+
+```{r layouts}
+add_figure_title <- function(plot, title) {
+  plot_grid(
+    ggdraw() + draw_label(title, x = 0.5, hjust = 0.5),
+    plot,
+    ncol = 1,
+    rel_heights = c(0.05, 1)
+  )
+}
+
+make_tool_matrix <- function(plots, title, align, axis) {
+  add_figure_title(
+    plot_grid(
+      plotlist = plots,
+      ncol = 3,
+      align = align,
+      axis = axis
+    ),
+    title
+  )
+}
 ```
 
 ```{r}
@@ -166,11 +194,16 @@ plot_real <- ggplot(df_Real_reads, aes(x = read_length)) +
   labs(x = "", y = "", title = "Real reads") +
   histogram_visible_x_theme
 
-figure_1 <- (
-  (plot_Badread + plot_LongISLND + plot_spacer()) / 
-  (plot_lrsim + plot_NanoSim + plot_real) /
-  (plot_PBSIM3 + plot_SimLoRD + plot_spacer())) +
-  plot_annotation(title = "Read length distribution for each simulation tool")
+figure_1 <- make_tool_matrix(
+  plots = list(
+    plot_Badread, plot_LongISLND, NULL,
+    plot_lrsim, plot_NanoSim, plot_real,
+    plot_PBSIM3, plot_SimLoRD, NULL
+  ),
+  title = "Read length distribution for each simulation tool",
+  align = "h",
+  axis = "b"
+)
 
 ggsave(
   "figures/figure_1.pdf",
@@ -224,11 +257,16 @@ plot_real <- ggplot(df_Real_reads, aes(x = Identity_Qscore)) +
   labs(x = "", y = "", title = "Real reads") +
   histogram_visible_x_theme
 
-figure_2 <- (
-  (plot_Badread + plot_LongISLND + plot_spacer()) / 
-  (plot_lrsim + plot_NanoSim + plot_real) /
-  (plot_PBSIM3 + plot_SimLoRD + plot_spacer())) +
-  plot_annotation(title = "Mean identity-derived quality score per read for each tool")
+figure_2 <- make_tool_matrix(
+  plots = list(
+    plot_Badread, plot_LongISLND, NULL,
+    plot_lrsim, plot_NanoSim, plot_real,
+    plot_PBSIM3, plot_SimLoRD, NULL
+  ),
+  title = "Mean identity-derived quality score per read for each tool",
+  align = "h",
+  axis = "b"
+)
 
 ggsave(
   "figures/figure_2.pdf",
@@ -285,11 +323,16 @@ plot_real <- ggplot(df_Real_reads, aes(x = mean_qscore)) +
   histogram_visible_x_theme +
   scale_x_continuous(limits = c(0, 50))
 
-figure_3 <- (
-  (plot_Badread + plot_LongISLND + plot_spacer()) / 
-  (plot_lrsim + plot_NanoSim + plot_real) /
-  (plot_PBSIM3 + plot_SimLoRD + plot_spacer())) +
-  plot_annotation(title = "Mean quality score for each tool")
+figure_3 <- make_tool_matrix(
+  plots = list(
+    plot_Badread, plot_LongISLND, NULL,
+    plot_lrsim, plot_NanoSim, plot_real,
+    plot_PBSIM3, plot_SimLoRD, NULL
+  ),
+  title = "Mean quality score for each tool",
+  align = "h",
+  axis = "b"
+)
 
 ggsave(
   "figures/figure_3.pdf",
@@ -346,11 +389,16 @@ plot_real <- ggplot(df_Real_reads, aes(x = mean_qscore, y = Identity_Qscore)) +
   scatter_visible_x_hidden_y_theme +
   scale_x_continuous(limits = c(0, 50))
 
-figure_4 <- (
-  (plot_Badread + plot_LongISLND + plot_spacer()) / 
-  (plot_lrsim + plot_NanoSim + plot_real) /
-  (plot_PBSIM3 + plot_SimLoRD + plot_spacer())) +
-  plot_annotation(title = "Mean identitiy derived quality score vs empicrical quality score for each tool")
+figure_4 <- make_tool_matrix(
+  plots = list(
+    plot_Badread, plot_LongISLND, NULL,
+    plot_lrsim, plot_NanoSim, plot_real,
+    plot_PBSIM3, plot_SimLoRD, NULL
+  ),
+  title = "Mean identitiy derived quality score vs empicrical quality score for each tool",
+  align = "hv",
+  axis = "tblr"
+)
 
 ggsave(
   "figures/figure_4.pdf",
@@ -426,11 +474,22 @@ p_real_correct <- ggplot(per_base_real, aes(x = qscore, y = match)) +
   scale_x_continuous(limits = c(0, 80), expand = expansion(add = 1))
 
 # Combine: sim facets on left, real reads + blank on right stacked
-right_col <- (plot_spacer() / p_real_correct / plot_spacer()) +
-  plot_layout(heights = c(0.73, 0.77, 0.50))
+right_col <- plot_grid(
+  NULL,
+  p_real_correct,
+  NULL,
+  ncol = 1,
+  rel_heights = c(0.73, 0.77, 0.50)
+)
 
-A <- (p_sim_correct | right_col) +
-  plot_layout(widths = c(2, 1))
+A <- plot_grid(
+  p_sim_correct,
+  right_col,
+  ncol = 2,
+  rel_widths = c(2, 1),
+  align = "h",
+  axis = "b"
+)
 ```
 
 ```{r}
@@ -452,11 +511,22 @@ p_real_error <- ggplot(per_base_real, aes(x = qscore, y = all_errors)) +
   scale_x_continuous(limits = c(0, 80), expand = expansion(add = 1))
 
 # Combine: sim facets on left, real reads + blank on right stacked
-right_col <- (plot_spacer() / p_real_error / plot_spacer()) +
-  plot_layout(heights = c(0.73, 0.77, 0.50))
+right_col <- plot_grid(
+  NULL,
+  p_real_error,
+  NULL,
+  ncol = 1,
+  rel_heights = c(0.73, 0.77, 0.50)
+)
 
-B <- (p_sim_error | right_col) +
-  plot_layout(widths = c(2, 1))
+B <- plot_grid(
+  p_sim_error,
+  right_col,
+  ncol = 2,
+  rel_widths = c(2, 1),
+  align = "h",
+  axis = "b"
+)
 ```
 
 ```{r}
@@ -479,17 +549,28 @@ p_real_cal <- ggplot(per_base_real, aes(x = qscore, y = error_qscore)) +
   supplementary_real_calibration_theme +
   ggtitle("Real reads")
 
-right_col_cal <- (plot_spacer() / p_real_cal / plot_spacer()) +
-  plot_layout(heights = c(0.71, 0.50, 0.50))
+right_col_cal <- plot_grid(
+  NULL,
+  p_real_cal,
+  NULL,
+  ncol = 1,
+  rel_heights = c(0.71, 0.50, 0.50)
+)
 
-C <- (p_sim_cal | right_col_cal) +
-  plot_layout(widths = c(2, 1))
+C <- plot_grid(
+  p_sim_cal,
+  right_col_cal,
+  ncol = 2,
+  rel_widths = c(2, 1),
+  align = "hv",
+  axis = "tblr"
+)
 
 
 ```
 
 ```{r, fig.height= 14, fig.width= 7}
-supplementary_1 <- A/B/C
+supplementary_1 <- plot_grid(A, B, C, ncol = 1)
 
 ggsave(
   "figures/figure_s1.pdf",
