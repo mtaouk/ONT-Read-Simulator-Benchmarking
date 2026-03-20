@@ -33,9 +33,30 @@ df_SimLoRD <- data %>% filter(tool == "SimLoRD")
 df_Real_reads <- data %>% filter(tool == "Real reads")
 ```
 
+```{r colours}
+badread_colour <- "#00b0be"
+longislnd_colour <- "#8fd7d7"
+lrsim_colour <- "#f45f74"
+nanosim_colour <- "#ff8cae"
+pbsim3_colour <- "#98c127"
+simlord_colour <- "#bdd373"
+real_reads_colour <- "#ffb255"
+reference_line_colour <- "grey70"
+point_colour <- "#00b0be"
+
+simulator_colours <- c(
+  "Badread" = badread_colour,
+  "LongISLND" = longislnd_colour,
+  "lrsim" = lrsim_colour,
+  "NanoSim" = nanosim_colour,
+  "PBSIM3" = pbsim3_colour,
+  "SimLoRD" = simlord_colour
+)
+```
+
 ```{r}
 plot_Badread <- ggplot(df_Badread, aes(x = read_length)) +
-  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = "#00b0be") +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = badread_colour) +
   scale_x_continuous(labels = comma, limits = c(0, 100000)) +
   theme_bw() +
   labs(
@@ -55,7 +76,7 @@ plot_Badread <- ggplot(df_Badread, aes(x = read_length)) +
   )
 
 plot_LongISLND <- ggplot(df_LongISLND, aes(x = read_length)) +
-  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = "#8fd7d7") +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = longislnd_colour) +
   scale_x_continuous(labels = comma, limits = c(0, 100000)) +
   theme_bw() +
   labs(
@@ -75,7 +96,7 @@ plot_LongISLND <- ggplot(df_LongISLND, aes(x = read_length)) +
   )
 
 plot_lrsim <- ggplot(df_lrsim, aes(x = read_length)) +
-  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = "#f45f74") +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = lrsim_colour) +
   scale_x_continuous(labels = comma, limits = c(0, 100000)) +
   theme_bw() +
   labs(
@@ -85,7 +106,7 @@ plot_lrsim <- ggplot(df_lrsim, aes(x = read_length)) +
   ) +
   theme(
     axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
-    axis.ticks.x = element_line(colour = "white"),,
+    axis.ticks.x = element_line(colour = "white"),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
     plot.title = element_text(hjust = 0.5, size = 9),
@@ -95,7 +116,7 @@ plot_lrsim <- ggplot(df_lrsim, aes(x = read_length)) +
   )
 
 plot_NanoSim <- ggplot(df_NanoSim, aes(x = read_length)) +
-  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = "#ff8cae") +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = nanosim_colour) +
   scale_x_continuous(labels = comma, limits = c(0, 100000)) +
   theme_bw() +
   labs(
@@ -115,7 +136,7 @@ plot_NanoSim <- ggplot(df_NanoSim, aes(x = read_length)) +
   )
 
 plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = read_length)) +
-  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = "#98c127") +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = pbsim3_colour) +
   scale_x_continuous(labels = comma, limits = c(0, 100000)) +
   theme_bw() +
   labs(
@@ -134,7 +155,7 @@ plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = read_length)) +
   )
 
 plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = read_length)) +
-  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = "#bdd373") +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = simlord_colour) +
   scale_x_continuous(labels = comma, limits = c(0, 100000)) +
   theme_bw() +
   labs(
@@ -153,7 +174,7 @@ plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = read_length)) +
   )
 
 plot_real <- ggplot(df_Real_reads, aes(x = read_length)) +
-  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = "#ffb255") +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, alpha = 0.95, position = "identity", fill = real_reads_colour) +
   scale_x_continuous(labels = comma, limits = c(0, 100000)) +
   theme_bw() +
   labs(
@@ -191,7 +212,7 @@ figure_1
 
 ```{r}
 plot_Badread <- ggplot(df_Badread, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#00b0be") +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = badread_colour) +
   theme_bw() +
   labs(
     x = "",
@@ -210,7 +231,7 @@ plot_Badread <- ggplot(df_Badread, aes(x = Identity_Qscore)) +
   )
 
 plot_LongISLND <- ggplot(df_LongISLND, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#8fd7d7") +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = longislnd_colour) +
   theme_bw() +
   labs(
     x = "",
@@ -229,7 +250,7 @@ plot_LongISLND <- ggplot(df_LongISLND, aes(x = Identity_Qscore)) +
   )
 
 plot_lrsim <- ggplot(df_lrsim, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#f45f74") +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = lrsim_colour) +
   theme_bw() +
   labs(
     x = "",
@@ -238,7 +259,7 @@ plot_lrsim <- ggplot(df_lrsim, aes(x = Identity_Qscore)) +
   ) +
   theme(
     axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
-    axis.ticks.x = element_line(colour = "white"),,
+    axis.ticks.x = element_line(colour = "white"),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
     plot.title = element_text(hjust = 0.5, size = 9),
@@ -248,7 +269,7 @@ plot_lrsim <- ggplot(df_lrsim, aes(x = Identity_Qscore)) +
   )
 
 plot_NanoSim <- ggplot(df_NanoSim, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#ff8cae") +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = nanosim_colour) +
   theme_bw() +
   labs(
     x = "",
@@ -267,7 +288,7 @@ plot_NanoSim <- ggplot(df_NanoSim, aes(x = Identity_Qscore)) +
   )
 
 plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#98c127") +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = pbsim3_colour) +
   theme_bw() +
   labs(
     x = "",
@@ -285,7 +306,7 @@ plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = Identity_Qscore)) +
   )
 
 plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#bdd373") +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = simlord_colour) +
   theme_bw() +
   labs(
     x = "Mean identity-derived quality score (per read)",
@@ -303,7 +324,7 @@ plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = Identity_Qscore)) +
   )
 
 plot_real <- ggplot(df_Real_reads, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#ffb255") +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = real_reads_colour) +
   theme_bw() +
   labs(
     x = "",
@@ -340,7 +361,7 @@ figure_2
 
 ```{r}
 plot_Badread <- ggplot(df_Badread, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#00b0be") +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = badread_colour) +
   theme_bw() +
   labs(
     x = "",
@@ -360,7 +381,7 @@ plot_Badread <- ggplot(df_Badread, aes(x = mean_qscore)) +
   scale_x_continuous(limits = c(0, 50))
 
 plot_LongISLND <- ggplot(df_LongISLND, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#8fd7d7") +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = longislnd_colour) +
   theme_bw() +
   labs(
     x = "",
@@ -380,7 +401,7 @@ plot_LongISLND <- ggplot(df_LongISLND, aes(x = mean_qscore)) +
   scale_x_continuous(limits = c(0, 50))
 
 plot_lrsim <- ggplot(df_lrsim, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#f45f74") +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = lrsim_colour) +
   theme_bw() +
   labs(
     x = "",
@@ -389,7 +410,7 @@ plot_lrsim <- ggplot(df_lrsim, aes(x = mean_qscore)) +
   ) +
   theme(
     axis.text.x = element_text(colour = "white", angle = 45, hjust = 1),
-    axis.ticks.x = element_line(colour = "white"),,
+    axis.ticks.x = element_line(colour = "white"),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
     plot.title = element_text(hjust = 0.5, size = 9),
@@ -400,7 +421,7 @@ plot_lrsim <- ggplot(df_lrsim, aes(x = mean_qscore)) +
   scale_x_continuous(limits = c(0, 50))
 
 plot_NanoSim <- ggplot(df_NanoSim, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#ff8cae") +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = nanosim_colour) +
   theme_bw() +
   labs(
     x = "",
@@ -420,7 +441,7 @@ plot_NanoSim <- ggplot(df_NanoSim, aes(x = mean_qscore)) +
   scale_x_continuous(limits = c(0, 50))
 
 plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#98c127") +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = pbsim3_colour) +
   theme_bw() +
   labs(
     x = "",
@@ -439,7 +460,7 @@ plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = mean_qscore)) +
   scale_x_continuous(limits = c(0, 50))
 
 plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#bdd373") +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = simlord_colour) +
   theme_bw() +
   labs(
     x = "Mean quality score (per read)",
@@ -458,7 +479,7 @@ plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = mean_qscore)) +
   scale_x_continuous(limits = c(0, 50))
 
 plot_real <- ggplot(df_Real_reads, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = "#ffb255") +
+  geom_histogram(binwidth = 1, alpha = 0.95, position = "identity", fill = real_reads_colour) +
   theme_bw() +
   labs(
     x = "",
@@ -496,7 +517,7 @@ figure_3
 
 ```{r}
 plot_Badread <- ggplot(df_Badread, aes(x = mean_qscore, y = Identity_Qscore)) +
-  geom_point(alpha = 0.01, colour = "#00b0be", fill = "#00b0be", size = 0.5 ) +
+  geom_point(alpha = 0.01, colour = point_colour, fill = point_colour, size = 0.5 ) +
   theme_bw() +
   labs(
     x = "",
@@ -511,7 +532,7 @@ plot_Badread <- ggplot(df_Badread, aes(x = mean_qscore, y = Identity_Qscore)) +
   scale_x_continuous(limits = c(0, 50))
 
 plot_LongISLND <- ggplot(df_LongISLND, aes(x = mean_qscore, y = Identity_Qscore)) +
-  geom_point(alpha = 0.01, colour = "#00b0be", fill = "#00b0be", size = 0.5 ) +
+  geom_point(alpha = 0.01, colour = point_colour, fill = point_colour, size = 0.5 ) +
   theme_bw() +
   labs(
     x = "",
@@ -529,7 +550,7 @@ plot_LongISLND <- ggplot(df_LongISLND, aes(x = mean_qscore, y = Identity_Qscore)
   scale_x_continuous(limits = c(0, 50))
 
 plot_lrsim <- ggplot(df_lrsim, aes(x = mean_qscore, y = Identity_Qscore)) +
-  geom_point(alpha = 0.01, colour = "#00b0be", fill = "#00b0be", size = 0.5 ) +
+  geom_point(alpha = 0.01, colour = point_colour, fill = point_colour, size = 0.5 ) +
   theme_bw() +
   labs(
     x = "",
@@ -545,7 +566,7 @@ plot_lrsim <- ggplot(df_lrsim, aes(x = mean_qscore, y = Identity_Qscore)) +
   scale_x_continuous(limits = c(0, 50))
 
 plot_NanoSim <- ggplot(df_NanoSim, aes(x = mean_qscore, y = Identity_Qscore)) +
-  geom_point(alpha = 0.01, colour = "#00b0be", fill = "#00b0be", size = 0.5 ) +
+  geom_point(alpha = 0.01, colour = point_colour, fill = point_colour, size = 0.5 ) +
   theme_bw() +
   labs(
     x = "",
@@ -563,7 +584,7 @@ plot_NanoSim <- ggplot(df_NanoSim, aes(x = mean_qscore, y = Identity_Qscore)) +
   scale_x_continuous(limits = c(0, 50))
 
 plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = mean_qscore, y = Identity_Qscore)) +
-  geom_point(alpha = 0.01, colour = "#00b0be", fill = "#00b0be", size = 0.5 ) +
+  geom_point(alpha = 0.01, colour = point_colour, fill = point_colour, size = 0.5 ) +
   theme_bw() +
   labs(
     x = "",
@@ -578,7 +599,7 @@ plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = mean_qscore, y = Identity_Qscore)) +
   scale_x_continuous(limits = c(0, 50))
 
 plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = mean_qscore, y = Identity_Qscore)) +
-  geom_point(alpha = 0.01, colour = "#00b0be", fill = "#00b0be", size = 0.5 ) +
+  geom_point(alpha = 0.01, colour = point_colour, fill = point_colour, size = 0.5 ) +
   theme_bw() +
   labs(
     x = "Mean quality score (per read)",
@@ -594,7 +615,7 @@ plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = mean_qscore, y = Identity_Qscore)) +
   scale_x_continuous(limits = c(0, 50))
 
 plot_real <- ggplot(df_Real_reads, aes(x = mean_qscore, y = Identity_Qscore)) +
-  geom_point(alpha = 0.01, colour = "#00b0be", fill = "#00b0be", size = 0.5 ) +
+  geom_point(alpha = 0.01, colour = point_colour, fill = point_colour, size = 0.5 ) +
   theme_bw() +
   labs(
     x = "",
@@ -689,11 +710,11 @@ p_sim_correct <- ggplot(per_base_sim, aes(x = qscore, y = match)) +
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank()) +
   scale_x_continuous(limits = c(0, 80), expand = expansion(add = 1)) +
-  scale_fill_manual(values = c('#00b0be','#8fd7d7','#f45f74','#ff8cae','#98c127','#bdd373'))
+  scale_fill_manual(values = simulator_colours)
 
 # Plot for real reads with a fake facet label on top
 p_real_correct <- ggplot(per_base_real, aes(x = qscore, y = match)) +
-  geom_col(fill = "#ffb255", width = 1) +
+  geom_col(fill = real_reads_colour, width = 1) +
   facet_wrap(~tool, scales = "free_y", nrow = 3) +
   theme_bw() +
   labs(
@@ -736,11 +757,11 @@ p_sim_error <- ggplot(per_base_sim, aes(x = qscore, y = all_errors)) +
     panel.grid.major.y = element_blank(),
     panel.grid.minor.y = element_blank()) +
   scale_x_continuous(limits = c(0, 80), expand = expansion(add = 1)) +
-  scale_fill_manual(values = c('#00b0be','#8fd7d7','#f45f74','#ff8cae','#98c127','#bdd373'))
+  scale_fill_manual(values = simulator_colours)
 
 # Plot for real reads with a fake facet label on top
 p_real_error <- ggplot(per_base_real, aes(x = qscore, y = all_errors)) +
-  geom_col(fill = "#ffb255", width = 1) +
+  geom_col(fill = real_reads_colour, width = 1) +
   facet_wrap(~tool, scales = "free_y", nrow = 3) +
   theme_bw() +
   labs(
@@ -771,7 +792,7 @@ p_sim_cal <- ggplot(per_base_sim, aes(x = qscore, y = error_qscore)) +
     intercept = 0,
     slope = 1,
     linetype = "dashed",
-    colour = "grey70"
+    colour = reference_line_colour
   ) +
   geom_point(
     aes(colour = tool),
@@ -788,7 +809,7 @@ p_sim_cal <- ggplot(per_base_sim, aes(x = qscore, y = error_qscore)) +
   scale_x_continuous(limits = c(0, max_q)) +
   scale_y_continuous(limits = c(0, max_q)) +
   scale_colour_manual(
-    values = c('#00b0be','#8fd7d7','#f45f74','#ff8cae','#98c127','#bdd373')
+    values = simulator_colours
   ) +
   theme(
     legend.position = "none",
@@ -801,10 +822,10 @@ p_real_cal <- ggplot(per_base_real, aes(x = qscore, y = error_qscore)) +
     intercept = 0,
     slope = 1,
     linetype = "dashed",
-    colour = "grey70"
+    colour = reference_line_colour
   ) +
   geom_point(
-    colour = "#ffb255",
+    colour = real_reads_colour,
     alpha = 0.8,
     size = 2
   ) +
