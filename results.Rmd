@@ -42,7 +42,7 @@ pbsim3_colour <- "#98c127"
 simlord_colour <- "#bdd373"
 real_reads_colour <- "#ffb255"
 reference_line_colour <- "grey70"
-point_colour <- "#00b0be"
+point_colour <- "#00575e"
 
 simulator_colours <- c(
   "Badread" = badread_colour,
@@ -419,50 +419,61 @@ figure_3
 ```
 
 ```{r}
+figure_4_point_layer <- function() {
+  ggrastr::geom_point_rast(
+    alpha = 0.05,
+    colour = point_colour,
+    shape = 16,
+    size = 0.1,
+    raster.dpi = 600,
+    dev = "ragg"
+  )
+}
+
 plot_Badread <- ggplot(df_Badread, aes(x = mean_qscore, y = Identity_Qscore)) +
-  geom_point(alpha = 0.01, colour = point_colour, fill = point_colour, size = 0.5 ) +
+  figure_4_point_layer() +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
   labs(x = "", y = "", title = "Badread") +
   scatter_hidden_x_theme
 
 plot_LongISLND <- ggplot(df_LongISLND, aes(x = mean_qscore, y = Identity_Qscore)) +
-  geom_point(alpha = 0.01, colour = point_colour, fill = point_colour, size = 0.5 ) +
+  figure_4_point_layer() +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
   labs(x = "", y = "", title = "LongISLND") +
   scatter_hidden_x_hidden_y_theme
 
 plot_lrsim <- ggplot(df_lrsim, aes(x = mean_qscore, y = Identity_Qscore)) +
-  geom_point(alpha = 0.01, colour = point_colour, fill = point_colour, size = 0.5 ) +
+  figure_4_point_layer() +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
   labs(x = "",  y = "Mean identity-derived\nquality score (per read)", title = "lrsim") +
   scatter_hidden_x_theme
 
 plot_NanoSim <- ggplot(df_NanoSim, aes(x = mean_qscore, y = Identity_Qscore)) +
-  geom_point(alpha = 0.01, colour = point_colour, fill = point_colour, size = 0.5 ) +
+  figure_4_point_layer() +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
   labs(x = "", y = "", title = "NanoSim") +
   scatter_hidden_x_hidden_y_theme
 
 plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = mean_qscore, y = Identity_Qscore)) +
-  geom_point(alpha = 0.01, colour = point_colour, fill = point_colour, size = 0.5 ) +
+  figure_4_point_layer() +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
   labs(x = "", y = "", title = "PBSIM3") +
   scatter_visible_x_theme
 
 plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = mean_qscore, y = Identity_Qscore)) +
-  geom_point(alpha = 0.01, colour = point_colour, fill = point_colour, size = 0.5 ) +
+  figure_4_point_layer() +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
   labs(x = "Mean quality score (per read)", y = "", title = "SimLoRD") +
   scatter_visible_x_hidden_y_theme
 
 plot_real <- ggplot(df_Real_reads, aes(x = mean_qscore, y = Identity_Qscore)) +
-  geom_point(alpha = 0.01, colour = point_colour, fill = point_colour, size = 0.5 ) +
+  figure_4_point_layer() +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
   labs(x = "", y = "", title = "Real reads") +
@@ -492,7 +503,6 @@ figure_4
 ```
 
 ```{r}
-
 files <- tribble(
   ~tool,        ~file,
   "Real reads", "results/real.qscore_counts.tsv",
