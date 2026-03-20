@@ -34,15 +34,14 @@ df_Real_reads <- data %>% filter(tool == "Real reads")
 ```
 
 ```{r colours}
-badread_colour <- "#00b0be"
-longislnd_colour <- "#8fd7d7"
-lrsim_colour <- "#f45f74"
-nanosim_colour <- "#ff8cae"
-pbsim3_colour <- "#98c127"
-simlord_colour <- "#bdd373"
-real_reads_colour <- "#ffb255"
+badread_colour <- "#B96762"
+longislnd_colour <- "#8E7F00"
+lrsim_colour <- "#269049"
+nanosim_colour <- "#009295"
+pbsim3_colour <- "#5F7DBE"
+simlord_colour <- "#B460A8"
+real_reads_colour <- "#7E7E7E"
 reference_line_colour <- "grey70"
-point_colour <- "#00575e"
 
 simulator_colours <- c(
   "Badread" = badread_colour,
@@ -52,6 +51,36 @@ simulator_colours <- c(
   "PBSIM3" = pbsim3_colour,
   "SimLoRD" = simlord_colour
 )
+
+adjust_figure_4_colours <- function(colour, luminance_scale = 0.3, chroma_scale = 1.25) {
+  hcl_values <- colorspace::coords(
+    as(colorspace::hex2RGB(colour), "polarLUV")
+  )
+
+  hcl_values[, "L"] <- hcl_values[, "L"] * luminance_scale
+  hcl_values[, "C"] <- hcl_values[, "C"] * chroma_scale
+
+  adjusted <- colorspace::hex(
+    colorspace::polarLUV(
+      L = hcl_values[, "L"],
+      C = hcl_values[, "C"],
+      H = hcl_values[, "H"]
+    ),
+    fixup = TRUE
+  )
+
+  stats::setNames(adjusted, names(colour))
+}
+
+figure_4_colours <- adjust_figure_4_colours(c(
+  "Badread" = badread_colour,
+  "LongISLND" = longislnd_colour,
+  "lrsim" = lrsim_colour,
+  "NanoSim" = nanosim_colour,
+  "PBSIM3" = pbsim3_colour,
+  "SimLoRD" = simlord_colour,
+  "Real reads" = real_reads_colour
+))
 ```
 
 ```{r themes}
@@ -419,10 +448,10 @@ figure_3
 ```
 
 ```{r}
-figure_4_point_layer <- function() {
+figure_4_point_layer <- function(colour) {
   ggrastr::geom_point_rast(
     alpha = 0.05,
-    colour = point_colour,
+    colour = colour,
     shape = 16,
     size = 0.1,
     raster.dpi = 600,
@@ -431,49 +460,49 @@ figure_4_point_layer <- function() {
 }
 
 plot_Badread <- ggplot(df_Badread, aes(x = mean_qscore, y = Identity_Qscore)) +
-  figure_4_point_layer() +
+  figure_4_point_layer(figure_4_colours[["Badread"]]) +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
   labs(x = "", y = "", title = "Badread") +
   scatter_hidden_x_theme
 
 plot_LongISLND <- ggplot(df_LongISLND, aes(x = mean_qscore, y = Identity_Qscore)) +
-  figure_4_point_layer() +
+  figure_4_point_layer(figure_4_colours[["LongISLND"]]) +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
   labs(x = "", y = "", title = "LongISLND") +
   scatter_hidden_x_hidden_y_theme
 
 plot_lrsim <- ggplot(df_lrsim, aes(x = mean_qscore, y = Identity_Qscore)) +
-  figure_4_point_layer() +
+  figure_4_point_layer(figure_4_colours[["lrsim"]]) +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
   labs(x = "",  y = "Mean identity-derived\nquality score (per read)", title = "lrsim") +
   scatter_hidden_x_theme
 
 plot_NanoSim <- ggplot(df_NanoSim, aes(x = mean_qscore, y = Identity_Qscore)) +
-  figure_4_point_layer() +
+  figure_4_point_layer(figure_4_colours[["NanoSim"]]) +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
   labs(x = "", y = "", title = "NanoSim") +
   scatter_hidden_x_hidden_y_theme
 
 plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = mean_qscore, y = Identity_Qscore)) +
-  figure_4_point_layer() +
+  figure_4_point_layer(figure_4_colours[["PBSIM3"]]) +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
   labs(x = "", y = "", title = "PBSIM3") +
   scatter_visible_x_theme
 
 plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = mean_qscore, y = Identity_Qscore)) +
-  figure_4_point_layer() +
+  figure_4_point_layer(figure_4_colours[["SimLoRD"]]) +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
   labs(x = "Mean quality score (per read)", y = "", title = "SimLoRD") +
   scatter_visible_x_hidden_y_theme
 
 plot_real <- ggplot(df_Real_reads, aes(x = mean_qscore, y = Identity_Qscore)) +
-  figure_4_point_layer() +
+  figure_4_point_layer(figure_4_colours[["Real reads"]]) +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
   labs(x = "", y = "", title = "Real reads") +
