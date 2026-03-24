@@ -94,39 +94,12 @@ histogram_panel_theme <- theme_bw() + theme(
   panel.grid.minor.y = element_blank()
 )
 
-histogram_hidden_x_theme <- histogram_panel_theme + theme(
-  axis.text.x = element_text(colour = "white"),
-  axis.ticks.x = element_line(colour = "white")
-)
-
-histogram_visible_x_theme <- histogram_panel_theme + theme(
-  axis.text.x = element_text()
-)
-
 scatter_panel_theme <- theme_bw() + theme(
   plot.title = element_text(size = 11, margin = margin(b = 2.0)),
   plot.margin = margin(2, 2, 2, 2),
   panel.background = element_rect(fill = "white")
 )
 
-scatter_hidden_x_theme <- scatter_panel_theme + theme(
-  axis.text.x = element_text(colour = "white"),
-  axis.ticks.x = element_line(colour = "white")
-)
-
-scatter_hidden_x_hidden_y_theme <- scatter_hidden_x_theme + theme(
-  axis.text.y = element_blank(),
-  axis.ticks.y = element_blank()
-)
-
-scatter_visible_x_theme <- scatter_panel_theme + theme(
-  axis.text.x = element_text()
-)
-
-scatter_visible_x_hidden_y_theme <- scatter_visible_x_theme + theme(
-  axis.text.y = element_blank(),
-  axis.ticks.y = element_blank()
-)
 
 supplementary_facet_theme <- theme_bw() + theme(
   legend.position = "none",
@@ -202,55 +175,55 @@ plot_Badread <- ggplot(df_Badread, aes(x = read_length)) +
   read_length_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "Badread") +
-  histogram_hidden_x_theme
+  histogram_panel_theme
 
 plot_LongISLND <- ggplot(df_LongISLND, aes(x = read_length)) +
   geom_histogram(aes(weight = read_length), binwidth = 1000, position = "identity", fill = longislnd_colour, colour = longislnd_colour, linewidth = 0.15) +
   read_length_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "LongISLND") +
-  histogram_hidden_x_theme
+  histogram_panel_theme
 
 plot_lrsim <- ggplot(df_lrsim, aes(x = read_length)) +
   geom_histogram(aes(weight = read_length), binwidth = 1000, position = "identity", fill = lrsim_colour, colour = lrsim_colour, linewidth = 0.15) +
   read_length_x_scale() +
   count_y_scale() +
-  labs(x = "", y = "Read count", title = "lrsim") +
-  histogram_hidden_x_theme
+  labs(x = "", y = "", title = "lrsim") +
+  histogram_panel_theme
 
 plot_NanoSim <- ggplot(df_NanoSim, aes(x = read_length)) +
   geom_histogram(aes(weight = read_length), binwidth = 1000, position = "identity", fill = nanosim_colour, colour = nanosim_colour, linewidth = 0.15) +
   read_length_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "NanoSim") +
-  histogram_hidden_x_theme
+  histogram_panel_theme
 
 plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = read_length)) +
   geom_histogram(aes(weight = read_length), binwidth = 1000, position = "identity", fill = pbsim3_colour, colour = pbsim3_colour, linewidth = 0.15) +
   read_length_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "PBSIM3") +
-  histogram_visible_x_theme
+  histogram_panel_theme
 
 plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = read_length)) +
   geom_histogram(aes(weight = read_length), binwidth = 1000, position = "identity", fill = simlord_colour, colour = simlord_colour, linewidth = 0.15) +
   read_length_x_scale() +
   count_y_scale() +
-  labs(x = "Read length (kbp)", y = "", title = "SimLoRD") +
-  histogram_visible_x_theme
+  labs(x = "", y = "", title = "SimLoRD") +
+  histogram_panel_theme
 
 plot_real <- ggplot(df_Real_reads, aes(x = read_length)) +
   geom_histogram(aes(weight = read_length), binwidth = 1000, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.15) +
   read_length_x_scale() +
   count_y_scale() +
-  labs(x = "", y = "", title = "Real reads") +
-  histogram_visible_x_theme
+  labs(x = "Read length (kbp)", y = "Read count", title = "Real reads") +
+  histogram_panel_theme
 
 figure_1 <- plot_grid(
   plotlist = list(
-    plot_Badread, plot_LongISLND, NULL,
-    plot_lrsim, plot_NanoSim, plot_real,
-    plot_PBSIM3, plot_SimLoRD, NULL
+    NULL, plot_Badread, plot_LongISLND,
+    plot_real, plot_lrsim, plot_NanoSim,
+    NULL, plot_PBSIM3, plot_SimLoRD
   ),
   ncol = 3, align = "h", axis = "b"
 )
@@ -273,55 +246,55 @@ plot_Badread <- ggplot(df_Badread, aes(x = Identity_Qscore)) +
   identity_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "Badread") +
-  histogram_hidden_x_theme
+  histogram_panel_theme
 
 plot_LongISLND <- ggplot(df_LongISLND, aes(x = Identity_Qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = longislnd_colour, colour = longislnd_colour, linewidth = 0.15) +
   identity_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "LongISLND") +
-  histogram_hidden_x_theme
+  histogram_panel_theme
 
 plot_lrsim <- ggplot(df_lrsim, aes(x = Identity_Qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = lrsim_colour, colour = lrsim_colour, linewidth = 0.15) +
   identity_qscore_x_scale() +
   count_y_scale() +
-  labs(x = "", y = "Read count", title = "lrsim") +
-  histogram_hidden_x_theme
+  labs(x = "", y = "", title = "lrsim") +
+  histogram_panel_theme
 
 plot_NanoSim <- ggplot(df_NanoSim, aes(x = Identity_Qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = nanosim_colour, colour = nanosim_colour, linewidth = 0.15) +
   identity_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "NanoSim") +
-  histogram_hidden_x_theme
+  histogram_panel_theme
 
 plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = Identity_Qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = pbsim3_colour, colour = pbsim3_colour, linewidth = 0.15) +
   identity_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "PBSIM3") +
-  histogram_visible_x_theme
+  histogram_panel_theme
 
 plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = Identity_Qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = simlord_colour, colour = simlord_colour, linewidth = 0.15) +
   identity_qscore_x_scale() +
   count_y_scale() +
-  labs(x = "Empirical read Q\u00adscore", y = "", title = "SimLoRD") +
-  histogram_visible_x_theme
+  labs(x = "", y = "", title = "SimLoRD") +
+  histogram_panel_theme
 
 plot_real <- ggplot(df_Real_reads, aes(x = Identity_Qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.15) +
   identity_qscore_x_scale() +
   count_y_scale() +
-  labs(x = "", y = "", title = "Real reads") +
-  histogram_visible_x_theme
+  labs(x = "Empirical read Q\u00adscore", y = "Read count", title = "Real reads") +
+  histogram_panel_theme
 
 figure_2 <- plot_grid(
   plotlist = list(
-    plot_Badread, plot_LongISLND, NULL,
-    plot_lrsim, plot_NanoSim, plot_real,
-    plot_PBSIM3, plot_SimLoRD, NULL
+    NULL, plot_Badread, plot_LongISLND,
+    plot_real, plot_lrsim, plot_NanoSim,
+    NULL, plot_PBSIM3, plot_SimLoRD
   ),
   ncol = 3, align = "h", axis = "b"
 )
@@ -344,55 +317,55 @@ plot_Badread <- ggplot(df_Badread, aes(x = mean_qscore)) +
   mean_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "Badread") +
-  histogram_hidden_x_theme
+  histogram_panel_theme
 
 plot_LongISLND <- ggplot(df_LongISLND, aes(x = mean_qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = longislnd_colour, colour = longislnd_colour, linewidth = 0.15) +
   mean_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "LongISLND") +
-  histogram_hidden_x_theme
+  histogram_panel_theme
 
 plot_lrsim <- ggplot(df_lrsim, aes(x = mean_qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = lrsim_colour, colour = lrsim_colour, linewidth = 0.15) +
   mean_qscore_x_scale() +
   count_y_scale() +
-  labs(x = "", y = "Read count", title = "lrsim") +
-  histogram_hidden_x_theme
+  labs(x = "", y = "", title = "lrsim") +
+  histogram_panel_theme
 
 plot_NanoSim <- ggplot(df_NanoSim, aes(x = mean_qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = nanosim_colour, colour = nanosim_colour, linewidth = 0.15) +
   mean_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "NanoSim") +
-  histogram_hidden_x_theme
+  histogram_panel_theme
 
 plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = mean_qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = pbsim3_colour, colour = pbsim3_colour, linewidth = 0.15) +
   mean_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "PBSIM3") +
-  histogram_visible_x_theme
+  histogram_panel_theme
 
 plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = mean_qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = simlord_colour, colour = simlord_colour, linewidth = 0.15) +
   mean_qscore_x_scale() +
   count_y_scale() +
-  labs(x = "Reported read Q\u00adscore", y = "", title = "SimLoRD") +
-  histogram_visible_x_theme
+  labs(x = "", y = "", title = "SimLoRD") +
+  histogram_panel_theme
 
 plot_real <- ggplot(df_Real_reads, aes(x = mean_qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.15) +
   mean_qscore_x_scale() +
   count_y_scale() +
-  labs(x = "", y = "", title = "Real reads") +
-  histogram_visible_x_theme
+  labs(x = "Reported read Q\u00adscore", y = "Read count", title = "Real reads") +
+  histogram_panel_theme
 
 figure_3 <- plot_grid(
   plotlist = list(
-    plot_Badread, plot_LongISLND, NULL,
-    plot_lrsim, plot_NanoSim, plot_real,
-    plot_PBSIM3, plot_SimLoRD, NULL
+    NULL, plot_Badread, plot_LongISLND,
+    plot_real, plot_lrsim, plot_NanoSim,
+    NULL, plot_PBSIM3, plot_SimLoRD
   ),
   ncol = 3, align = "h", axis = "b"
 )
@@ -426,55 +399,55 @@ plot_Badread <- ggplot(df_Badread, aes(x = mean_qscore, y = Identity_Qscore)) +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
   labs(x = "", y = "", title = "Badread") +
-  scatter_hidden_x_theme
+  scatter_panel_theme
 
 plot_LongISLND <- ggplot(df_LongISLND, aes(x = mean_qscore, y = Identity_Qscore)) +
   figure_4_point_layer(figure_4_colours[["LongISLND"]]) +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
   labs(x = "", y = "", title = "LongISLND") +
-  scatter_hidden_x_hidden_y_theme
+  scatter_panel_theme
 
 plot_lrsim <- ggplot(df_lrsim, aes(x = mean_qscore, y = Identity_Qscore)) +
   figure_4_point_layer(figure_4_colours[["lrsim"]]) +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
-  labs(x = "",  y = "Empirical read Q\u00adscore", title = "lrsim") +
-  scatter_hidden_x_theme
+  labs(x = "", y = "", title = "lrsim") +
+  scatter_panel_theme
 
 plot_NanoSim <- ggplot(df_NanoSim, aes(x = mean_qscore, y = Identity_Qscore)) +
   figure_4_point_layer(figure_4_colours[["NanoSim"]]) +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
   labs(x = "", y = "", title = "NanoSim") +
-  scatter_hidden_x_hidden_y_theme
+  scatter_panel_theme
 
 plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = mean_qscore, y = Identity_Qscore)) +
   figure_4_point_layer(figure_4_colours[["PBSIM3"]]) +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
   labs(x = "", y = "", title = "PBSIM3") +
-  scatter_visible_x_theme
+  scatter_panel_theme
 
 plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = mean_qscore, y = Identity_Qscore)) +
   figure_4_point_layer(figure_4_colours[["SimLoRD"]]) +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
-  labs(x = "Reported read Q\u00adscore", y = "", title = "SimLoRD") +
-  scatter_visible_x_hidden_y_theme
+  labs(x = "", y = "", title = "SimLoRD") +
+  scatter_panel_theme
 
 plot_real <- ggplot(df_Real_reads, aes(x = mean_qscore, y = Identity_Qscore)) +
   figure_4_point_layer(figure_4_colours[["Real reads"]]) +
   mean_qscore_x_scale() +
   identity_qscore_y_scale() +
-  labs(x = "", y = "", title = "Real reads") +
-  scatter_visible_x_hidden_y_theme
+  labs(x = "Reported read Q\u00adscore", y = "Empirical read Q\u00adscore", title = "Real reads") +
+  scatter_panel_theme
 
 figure_4 <- plot_grid(
   plotlist = list(
-    plot_Badread, plot_LongISLND, NULL,
-    plot_lrsim, plot_NanoSim, plot_real,
-    plot_PBSIM3, plot_SimLoRD, NULL
+    NULL, plot_Badread, plot_LongISLND,
+    plot_real, plot_lrsim, plot_NanoSim,
+    NULL, plot_PBSIM3, plot_SimLoRD
   ),
   ncol = 3, align = "hv", axis = "tblr"
 )
@@ -546,58 +519,60 @@ p_badread_correct <- per_base_count_plot(
   data = per_base %>% filter(tool == "Badread"),
   y_column = "match",
   colour = badread_colour, title = "Badread",
-  plot_theme = histogram_hidden_x_theme
+  plot_theme = histogram_panel_theme
 )
 
 p_longislnd_correct <- per_base_count_plot(
   data = per_base %>% filter(tool == "LongISLND"),
   y_column = "match",
   colour = longislnd_colour, title = "LongISLND",
-  plot_theme = histogram_hidden_x_theme
+  plot_theme = histogram_panel_theme
 )
 
 p_lrsim_correct <- per_base_count_plot(
   data = per_base %>% filter(tool == "lrsim"),
   y_column = "match",
   colour = lrsim_colour, title = "lrsim",
-  y_label = "Base count",
-  plot_theme = histogram_hidden_x_theme
+  y_label = "",
+  plot_theme = histogram_panel_theme
 )
 
 p_nanosim_correct <- per_base_count_plot(
   data = per_base %>% filter(tool == "NanoSim"),
   y_column = "match",
   colour = nanosim_colour, title = "NanoSim",
-  plot_theme = histogram_hidden_x_theme
+  plot_theme = histogram_panel_theme
 )
 
 p_real_correct <- per_base_count_plot(
   data = per_base_real,
   y_column = "match",
   colour = real_reads_colour, title = "Real reads",
-  plot_theme = histogram_visible_x_theme
+  x_label = "Reported base Q\u00adscore",
+  y_label = "Base count",
+  plot_theme = histogram_panel_theme
 )
 
 p_pbsim3_correct <- per_base_count_plot(
   data = per_base %>% filter(tool == "PBSIM3"),
   y_column = "match",
   colour = pbsim3_colour, title = "PBSIM3",
-  plot_theme = histogram_visible_x_theme
+  plot_theme = histogram_panel_theme
 )
 
 p_simlord_correct <- per_base_count_plot(
   data = per_base %>% filter(tool == "SimLoRD"),
   y_column = "match",
   colour = simlord_colour, title = "SimLoRD",
-  x_label = "Reported base Q\u00adscore",
-  plot_theme = histogram_visible_x_theme
+  x_label = "",
+  plot_theme = histogram_panel_theme
 )
 
 figure_s1 <- plot_grid(
   plotlist = list(
-    p_badread_correct, p_longislnd_correct, NULL,
-    p_lrsim_correct, p_nanosim_correct, p_real_correct,
-    p_pbsim3_correct, p_simlord_correct, NULL
+    NULL, p_badread_correct, p_longislnd_correct,
+    p_real_correct, p_lrsim_correct, p_nanosim_correct,
+    NULL, p_pbsim3_correct, p_simlord_correct
   ),
   ncol = 3, align = "h", axis = "b"
 )
@@ -619,58 +594,60 @@ p_badread_error <- per_base_count_plot(
   data = per_base %>% filter(tool == "Badread"),
   y_column = "all_errors",
   colour = badread_colour, title = "Badread",
-  plot_theme = histogram_hidden_x_theme
+  plot_theme = histogram_panel_theme
 )
 
 p_longislnd_error <- per_base_count_plot(
   data = per_base %>% filter(tool == "LongISLND"),
   y_column = "all_errors",
   colour = longislnd_colour, title = "LongISLND",
-  plot_theme = histogram_hidden_x_theme
+  plot_theme = histogram_panel_theme
 )
 
 p_lrsim_error <- per_base_count_plot(
   data = per_base %>% filter(tool == "lrsim"),
   y_column = "all_errors",
   colour = lrsim_colour, title = "lrsim",
-  y_label = "Base count",
-  plot_theme = histogram_hidden_x_theme
+  y_label = "",
+  plot_theme = histogram_panel_theme
 )
 
 p_nanosim_error <- per_base_count_plot(
   data = per_base %>% filter(tool == "NanoSim"),
   y_column = "all_errors",
   colour = nanosim_colour, title = "NanoSim",
-  plot_theme = histogram_hidden_x_theme
+  plot_theme = histogram_panel_theme
 )
 
 p_real_error <- per_base_count_plot(
   data = per_base_real,
   y_column = "all_errors",
   colour = real_reads_colour, title = "Real reads",
-  plot_theme = histogram_visible_x_theme
+  x_label = "Reported base Q\u00adscore",
+  y_label = "Base count",
+  plot_theme = histogram_panel_theme
 )
 
 p_pbsim3_error <- per_base_count_plot(
   data = per_base %>% filter(tool == "PBSIM3"),
   y_column = "all_errors",
   colour = pbsim3_colour, title = "PBSIM3",
-  plot_theme = histogram_visible_x_theme
+  plot_theme = histogram_panel_theme
 )
 
 p_simlord_error <- per_base_count_plot(
   data = per_base %>% filter(tool == "SimLoRD"),
   y_column = "all_errors",
   colour = simlord_colour, title = "SimLoRD",
-  x_label = "Reported base Q\u00adscore",
-  plot_theme = histogram_visible_x_theme
+  x_label = "",
+  plot_theme = histogram_panel_theme
 )
 
 figure_s2 <- plot_grid(
   plotlist = list(
-    p_badread_error, p_longislnd_error, NULL,
-    p_lrsim_error, p_nanosim_error, p_real_error,
-    p_pbsim3_error, p_simlord_error, NULL
+    NULL, p_badread_error, p_longislnd_error,
+    p_real_error, p_lrsim_error, p_nanosim_error,
+    NULL, p_pbsim3_error, p_simlord_error
   ),
   ncol = 3, align = "h", axis = "b"
 )
@@ -701,52 +678,54 @@ per_base_calibration_plot <- function(data, colour, title, x_label = "", y_label
 p_badread_cal <- per_base_calibration_plot(
   data = per_base %>% filter(tool == "Badread"),
   colour = badread_colour, title = "Badread",
-  plot_theme = scatter_hidden_x_theme
+  plot_theme = scatter_panel_theme
 )
 
 p_longislnd_cal <- per_base_calibration_plot(
   data = per_base %>% filter(tool == "LongISLND"),
   colour = longislnd_colour, title = "LongISLND",
-  plot_theme = scatter_hidden_x_hidden_y_theme
+  plot_theme = scatter_panel_theme
 )
 
 p_lrsim_cal <- per_base_calibration_plot(
   data = per_base %>% filter(tool == "lrsim"),
   colour = lrsim_colour, title = "lrsim",
-  y_label = "Empirical base Q\u00adscore",
-  plot_theme = scatter_hidden_x_theme
+  y_label = "",
+  plot_theme = scatter_panel_theme
 )
 
 p_nanosim_cal <- per_base_calibration_plot(
   data = per_base %>% filter(tool == "NanoSim"),
   colour = nanosim_colour, title = "NanoSim",
-  plot_theme = scatter_hidden_x_hidden_y_theme
+  plot_theme = scatter_panel_theme
 )
 
 p_real_cal <- per_base_calibration_plot(
   data = per_base_real,
   colour = real_reads_colour, title = "Real reads",
-  plot_theme = scatter_visible_x_hidden_y_theme
+  x_label = "Reported base Q\u00adscore",
+  y_label = "Empirical base Q\u00adscore",
+  plot_theme = scatter_panel_theme
 )
 
 p_pbsim3_cal <- per_base_calibration_plot(
   data = per_base %>% filter(tool == "PBSIM3"),
   colour = pbsim3_colour, title = "PBSIM3",
-  plot_theme = scatter_visible_x_theme
+  plot_theme = scatter_panel_theme
 )
 
 p_simlord_cal <- per_base_calibration_plot(
   data = per_base %>% filter(tool == "SimLoRD"),
   colour = simlord_colour, title = "SimLoRD",
-  x_label = "Reported base Q\u00adscore",
-  plot_theme = scatter_visible_x_hidden_y_theme
+  x_label = "",
+  plot_theme = scatter_panel_theme
 )
 
 figure_s3 <- plot_grid(
   plotlist = list(
-    p_badread_cal, p_longislnd_cal, NULL,
-    p_lrsim_cal, p_nanosim_cal, p_real_cal,
-    p_pbsim3_cal, p_simlord_cal, NULL
+    NULL, p_badread_cal, p_longislnd_cal,
+    p_real_cal, p_lrsim_cal, p_nanosim_cal,
+    NULL, p_pbsim3_cal, p_simlord_cal
   ),
   ncol = 3, align = "hv", axis = "tblr"
 )
