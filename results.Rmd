@@ -242,49 +242,49 @@ figure_1
 
 ```{r figure_2}
 plot_real <- ggplot(df_Real_reads, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 0.5, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.15) +
+  geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.15) +
   empirical_read_qscore_x_scale() +
   count_y_scale() +
-  labs(x = "Empirical read Q\u00adscore", y = "Read count", title = "Real reads") +
+  labs(x = "Empirical read Q\u00adscore", y = "Base count", title = "Real reads") +
   histogram_panel_theme
 
 plot_Badread <- ggplot(df_Badread, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 0.5, position = "identity", fill = badread_colour, colour = badread_colour, linewidth = 0.15) +
+  geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = badread_colour, colour = badread_colour, linewidth = 0.15) +
   empirical_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "Badread") +
   histogram_panel_theme
 
 plot_LongISLND <- ggplot(df_LongISLND, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 0.5, position = "identity", fill = longislnd_colour, colour = longislnd_colour, linewidth = 0.15) +
+  geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = longislnd_colour, colour = longislnd_colour, linewidth = 0.15) +
   empirical_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "LongISLND") +
   histogram_panel_theme
 
 plot_lrsim <- ggplot(df_lrsim, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 0.5, position = "identity", fill = lrsim_colour, colour = lrsim_colour, linewidth = 0.15) +
+  geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = lrsim_colour, colour = lrsim_colour, linewidth = 0.15) +
   empirical_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "lrsim") +
   histogram_panel_theme
 
 plot_NanoSim <- ggplot(df_NanoSim, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 0.5, position = "identity", fill = nanosim_colour, colour = nanosim_colour, linewidth = 0.15) +
+  geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = nanosim_colour, colour = nanosim_colour, linewidth = 0.15) +
   empirical_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "NanoSim") +
   histogram_panel_theme
 
 plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 0.5, position = "identity", fill = pbsim3_colour, colour = pbsim3_colour, linewidth = 0.15) +
+  geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = pbsim3_colour, colour = pbsim3_colour, linewidth = 0.15) +
   empirical_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "PBSIM3") +
   histogram_panel_theme
 
 plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 0.5, position = "identity", fill = simlord_colour, colour = simlord_colour, linewidth = 0.15) +
+  geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = simlord_colour, colour = simlord_colour, linewidth = 0.15) +
   empirical_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "SimLoRD") +
@@ -314,49 +314,49 @@ figure_2
 
 ```{r figure_3}
 plot_real <- ggplot(df_Real_reads, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 0.5, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.15) +
+  geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.15) +
   reported_read_qscore_x_scale() +
   count_y_scale() +
-  labs(x = "Reported read Q\u00adscore", y = "Read count", title = "Real reads") +
+  labs(x = "Reported read Q\u00adscore", y = "Base count", title = "Real reads") +
   histogram_panel_theme
 
 plot_Badread <- ggplot(df_Badread, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 0.5, position = "identity", fill = badread_colour, colour = badread_colour, linewidth = 0.15) +
+  geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = badread_colour, colour = badread_colour, linewidth = 0.15) +
   reported_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "Badread") +
   histogram_panel_theme
 
 plot_LongISLND <- ggplot(df_LongISLND, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 0.5, position = "identity", fill = longislnd_colour, colour = longislnd_colour, linewidth = 0.15) +
+  geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = longislnd_colour, colour = longislnd_colour, linewidth = 0.15) +
   reported_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "LongISLND") +
   histogram_panel_theme
 
 plot_lrsim <- ggplot(df_lrsim, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 0.5, position = "identity", fill = lrsim_colour, colour = lrsim_colour, linewidth = 0.15) +
+  geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = lrsim_colour, colour = lrsim_colour, linewidth = 0.15) +
   reported_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "lrsim") +
   histogram_panel_theme
 
 plot_NanoSim <- ggplot(df_NanoSim, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 0.5, position = "identity", fill = nanosim_colour, colour = nanosim_colour, linewidth = 0.15) +
+  geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = nanosim_colour, colour = nanosim_colour, linewidth = 0.15) +
   reported_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "NanoSim") +
   histogram_panel_theme
 
 plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 0.5, position = "identity", fill = pbsim3_colour, colour = pbsim3_colour, linewidth = 0.15) +
+  geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = pbsim3_colour, colour = pbsim3_colour, linewidth = 0.15) +
   reported_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "PBSIM3") +
   histogram_panel_theme
 
 plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 0.5, position = "identity", fill = simlord_colour, colour = simlord_colour, linewidth = 0.15) +
+  geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = simlord_colour, colour = simlord_colour, linewidth = 0.15) +
   reported_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "SimLoRD") +
