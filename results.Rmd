@@ -43,15 +43,6 @@ simlord_colour <- "#B460A8"
 real_reads_colour <- "#7E7E7E"
 reference_line_colour <- "grey70"
 
-simulator_colours <- c(
-  "Badread" = badread_colour,
-  "LongISLND" = longislnd_colour,
-  "lrsim" = lrsim_colour,
-  "NanoSim" = nanosim_colour,
-  "PBSIM3" = pbsim3_colour,
-  "SimLoRD" = simlord_colour
-)
-
 adjust_figure_4_colours <- function(colour, luminance_scale = 0.3, chroma_scale = 1.25) {
   hcl_values <- colorspace::coords(
     as(colorspace::hex2RGB(colour), "polarLUV")
@@ -85,51 +76,21 @@ figure_4_colours <- adjust_figure_4_colours(c(
 
 ```{r themes}
 histogram_panel_theme <- theme_bw() + theme(
+  axis.text = element_text(size = 8),
   axis.text.y = element_blank(),
   axis.ticks.y = element_blank(),
-  plot.title = element_text(size = 11, margin = margin(b = 2.0)),
-  plot.margin = margin(2, 2, 2, 2),
+  plot.title = element_text(face = "bold", size = 11, margin = margin(b = 2.0)),
+  plot.margin = margin(1, 1, 0, 0),
   panel.background = element_rect(fill = "white"),
   panel.grid.major.y = element_blank(),
   panel.grid.minor.y = element_blank()
 )
 
 scatter_panel_theme <- theme_bw() + theme(
-  plot.title = element_text(size = 11, margin = margin(b = 2.0)),
-  plot.margin = margin(2, 2, 2, 2),
+  axis.text = element_text(size = 8),
+  plot.title = element_text(face = "bold", size = 11, margin = margin(b = 2.0)),
+  plot.margin = margin(1, 1, 0, 0),
   panel.background = element_rect(fill = "white")
-)
-
-
-supplementary_facet_theme <- theme_bw() + theme(
-  legend.position = "none",
-  strip.background = element_blank(),
-  axis.text.x = element_text(),
-  axis.text.y = element_blank(),
-  axis.ticks.y = element_blank(),
-  plot.title = element_text(size = 11, margin = margin(b = 2.0)),
-  plot.margin = margin(2, 2, 2, 2),
-  panel.grid.major.y = element_blank(),
-  panel.grid.minor.y = element_blank()
-)
-
-supplementary_facet_no_y_grid_theme <- supplementary_facet_theme + theme(
-  panel.grid.major.y = element_blank(),
-  panel.grid.minor.y = element_blank()
-)
-
-supplementary_calibration_theme <- theme_bw() + theme(
-  legend.position = "none",
-  strip.background = element_blank(),
-  axis.text.x = element_text(),
-  plot.margin = margin(2, 2, 2, 2)
-)
-
-supplementary_real_calibration_theme <- theme_bw() + theme(
-  axis.text.x = element_text(),
-  plot.title = element_text(size = 11, margin = margin(b = 2.0)),
-  strip.background = element_blank(),
-  plot.margin = margin(2, 2, 2, 2)
 )
 ```
 
@@ -137,28 +98,60 @@ supplementary_real_calibration_theme <- theme_bw() + theme(
 read_length_x_scale <- function() {
   scale_x_continuous(
     labels = label_number(scale = 1 / 1000),
-    limits = c(0, 100000)
+    limits = c(0, 80000)
   )
 }
 
-identity_qscore_x_scale <- function() {
+empirical_qscore_labels <- function(x) {
+  parse(text = ifelse(x == 50, "displaystyle(infinity)", as.character(x)))
+}
+
+empirical_read_qscore_x_scale <- function() {
+  scale_x_continuous(
+    limits = c(0, 51),
+    breaks =  c(seq(0, 40, 10), 50),
+    labels = empirical_qscore_labels
+  )
+}
+
+reported_read_qscore_x_scale <- function() {
   scale_x_continuous(limits = c(0, 51))
 }
 
-mean_qscore_x_scale <- function() {
-  scale_x_continuous(limits = c(0, 51))
+empirical_read_qscore_y_scale <- function() {
+  scale_y_continuous(
+    limits = c(0, 51),
+    breaks =  c(seq(0, 40, 10), 50),
+    labels = empirical_qscore_labels
+  )
 }
 
-identity_qscore_y_scale <- function() {
-  scale_y_continuous(limits = c(0, 51))
+enlarge_infinity_tick <- function(plot, axis, fontsize = 12.0) {
+  axis_name <- switch(axis, x = "axis-b", y = "axis-l")
+  grob <- ggplotGrob(plot)
+  axis_index <- which(grob$layout$name == axis_name)
+  if (length(axis_index) == 0) { return(grob) }
+  axis_grob <- grob$grobs[[axis_index]]
+  text_grob <- axis_grob$children$axis$grobs[[2]]$children[[1]]
+  label_count <- length(text_grob$label)
+  if (label_count == 0) { return(grob) }
+  text_grob$gp$fontsize <- rep(text_grob$gp$fontsize, label_count)
+  text_grob$gp$fontsize[label_count] <- fontsize
+  axis_grob$children$axis$grobs[[2]]$children[[1]] <- text_grob
+  grob$grobs[[axis_index]] <- axis_grob
+  grob
 }
 
 supplementary_qscore_x_scale <- function() {
   scale_x_continuous(limits = c(0, 80))
 }
 
-supplementary_qscore_y_scale <- function() {
-  scale_y_continuous(limits = c(0, 80))
+supplementary_empirical_base_qscore_y_scale <- function() {
+  scale_y_continuous(
+    limits = c(0, 60),
+    breaks = c(seq(0, 50, 10), 60),
+    labels = parse(text = c(as.character(seq(0, 50, 10)), "infinity"))
+  )
 }
 
 count_y_scale <- function() {
@@ -167,9 +160,30 @@ count_y_scale <- function() {
     expand = expansion(mult = c(0, 0.05))
   )
 }
+
+save_and_crop_figure <- function(filename, plot, height = 160, width = 200) {
+  ggsave(
+    filename, plot,
+    height = height, width = width,
+    units = "mm", device = "pdf"
+  )
+
+  # Trim whitespace from the edges (requires pdfcrop to be available on the CLI)
+  pdfcrop <- Sys.which("pdfcrop")
+  if (nzchar(pdfcrop)) {
+    system2(pdfcrop, c(filename, filename))
+  }
+}
 ```
 
 ```{r figure_1}
+plot_real <- ggplot(df_Real_reads, aes(x = read_length)) +
+  geom_histogram(aes(weight = read_length), binwidth = 1000, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.15) +
+  read_length_x_scale() +
+  count_y_scale() +
+  labs(x = "Read length (kbp)", y = "Base count", title = "Real reads") +
+  histogram_panel_theme
+
 plot_Badread <- ggplot(df_Badread, aes(x = read_length)) +
   geom_histogram(aes(weight = read_length), binwidth = 1000, position = "identity", fill = badread_colour, colour = badread_colour, linewidth = 0.15) +
   read_length_x_scale() +
@@ -212,13 +226,6 @@ plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = read_length)) +
   labs(x = "", y = "", title = "SimLoRD") +
   histogram_panel_theme
 
-plot_real <- ggplot(df_Real_reads, aes(x = read_length)) +
-  geom_histogram(aes(weight = read_length), binwidth = 1000, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.15) +
-  read_length_x_scale() +
-  count_y_scale() +
-  labs(x = "Read length (kbp)", y = "Read count", title = "Real reads") +
-  histogram_panel_theme
-
 figure_1 <- plot_grid(
   plotlist = list(
     NULL, plot_Badread, plot_LongISLND,
@@ -228,67 +235,68 @@ figure_1 <- plot_grid(
   ncol = 3, align = "h", axis = "b"
 )
 
-ggsave(
-  "figures/figure_1.pdf",
-  figure_1,
-  height  = 160,
-  width = 200,
-  units  = "mm",
-  device = "pdf"
-)
+save_and_crop_figure("figures/figure_1.pdf", figure_1)
 
 figure_1
 ```
 
 ```{r figure_2}
+plot_real <- ggplot(df_Real_reads, aes(x = Identity_Qscore)) +
+  geom_histogram(binwidth = 0.5, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.15) +
+  empirical_read_qscore_x_scale() +
+  count_y_scale() +
+  labs(x = "Empirical read Q\u00adscore", y = "Read count", title = "Real reads") +
+  histogram_panel_theme
+
 plot_Badread <- ggplot(df_Badread, aes(x = Identity_Qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = badread_colour, colour = badread_colour, linewidth = 0.15) +
-  identity_qscore_x_scale() +
+  empirical_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "Badread") +
   histogram_panel_theme
 
 plot_LongISLND <- ggplot(df_LongISLND, aes(x = Identity_Qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = longislnd_colour, colour = longislnd_colour, linewidth = 0.15) +
-  identity_qscore_x_scale() +
+  empirical_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "LongISLND") +
   histogram_panel_theme
 
 plot_lrsim <- ggplot(df_lrsim, aes(x = Identity_Qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = lrsim_colour, colour = lrsim_colour, linewidth = 0.15) +
-  identity_qscore_x_scale() +
+  empirical_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "lrsim") +
   histogram_panel_theme
 
 plot_NanoSim <- ggplot(df_NanoSim, aes(x = Identity_Qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = nanosim_colour, colour = nanosim_colour, linewidth = 0.15) +
-  identity_qscore_x_scale() +
+  empirical_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "NanoSim") +
   histogram_panel_theme
 
 plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = Identity_Qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = pbsim3_colour, colour = pbsim3_colour, linewidth = 0.15) +
-  identity_qscore_x_scale() +
+  empirical_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "PBSIM3") +
   histogram_panel_theme
 
 plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = Identity_Qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = simlord_colour, colour = simlord_colour, linewidth = 0.15) +
-  identity_qscore_x_scale() +
+  empirical_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "SimLoRD") +
   histogram_panel_theme
 
-plot_real <- ggplot(df_Real_reads, aes(x = Identity_Qscore)) +
-  geom_histogram(binwidth = 0.5, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.15) +
-  identity_qscore_x_scale() +
-  count_y_scale() +
-  labs(x = "Empirical read Q\u00adscore", y = "Read count", title = "Real reads") +
-  histogram_panel_theme
+plot_Badread <- enlarge_infinity_tick(plot_Badread, "x")
+plot_LongISLND <- enlarge_infinity_tick(plot_LongISLND, "x")
+plot_lrsim <- enlarge_infinity_tick(plot_lrsim, "x")
+plot_NanoSim <- enlarge_infinity_tick(plot_NanoSim, "x")
+plot_PBSIM3 <- enlarge_infinity_tick(plot_PBSIM3, "x")
+plot_SimLoRD <- enlarge_infinity_tick(plot_SimLoRD, "x")
+plot_real <- enlarge_infinity_tick(plot_real, "x")
 
 figure_2 <- plot_grid(
   plotlist = list(
@@ -299,66 +307,59 @@ figure_2 <- plot_grid(
   ncol = 3, align = "h", axis = "b"
 )
 
-ggsave(
-  "figures/figure_2.pdf",
-  figure_2,
-  height  = 160,
-  width = 200,
-  units  = "mm",
-  device = "pdf"
-)
+save_and_crop_figure("figures/figure_2.pdf", figure_2)
 
 figure_2
 ```
 
 ```{r figure_3}
+plot_real <- ggplot(df_Real_reads, aes(x = mean_qscore)) +
+  geom_histogram(binwidth = 0.5, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.15) +
+  reported_read_qscore_x_scale() +
+  count_y_scale() +
+  labs(x = "Reported read Q\u00adscore", y = "Read count", title = "Real reads") +
+  histogram_panel_theme
+
 plot_Badread <- ggplot(df_Badread, aes(x = mean_qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = badread_colour, colour = badread_colour, linewidth = 0.15) +
-  mean_qscore_x_scale() +
+  reported_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "Badread") +
   histogram_panel_theme
 
 plot_LongISLND <- ggplot(df_LongISLND, aes(x = mean_qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = longislnd_colour, colour = longislnd_colour, linewidth = 0.15) +
-  mean_qscore_x_scale() +
+  reported_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "LongISLND") +
   histogram_panel_theme
 
 plot_lrsim <- ggplot(df_lrsim, aes(x = mean_qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = lrsim_colour, colour = lrsim_colour, linewidth = 0.15) +
-  mean_qscore_x_scale() +
+  reported_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "lrsim") +
   histogram_panel_theme
 
 plot_NanoSim <- ggplot(df_NanoSim, aes(x = mean_qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = nanosim_colour, colour = nanosim_colour, linewidth = 0.15) +
-  mean_qscore_x_scale() +
+  reported_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "NanoSim") +
   histogram_panel_theme
 
 plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = mean_qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = pbsim3_colour, colour = pbsim3_colour, linewidth = 0.15) +
-  mean_qscore_x_scale() +
+  reported_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "PBSIM3") +
   histogram_panel_theme
 
 plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = mean_qscore)) +
   geom_histogram(binwidth = 0.5, position = "identity", fill = simlord_colour, colour = simlord_colour, linewidth = 0.15) +
-  mean_qscore_x_scale() +
+  reported_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "SimLoRD") +
-  histogram_panel_theme
-
-plot_real <- ggplot(df_Real_reads, aes(x = mean_qscore)) +
-  geom_histogram(binwidth = 0.5, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.15) +
-  mean_qscore_x_scale() +
-  count_y_scale() +
-  labs(x = "Reported read Q\u00adscore", y = "Read count", title = "Real reads") +
   histogram_panel_theme
 
 figure_3 <- plot_grid(
@@ -370,14 +371,7 @@ figure_3 <- plot_grid(
   ncol = 3, align = "h", axis = "b"
 )
 
-ggsave(
-  "figures/figure_3.pdf",
-  figure_3,
-  height  = 160,
-  width = 200,
-  units  = "mm",
-  device = "pdf"
-)
+save_and_crop_figure("figures/figure_3.pdf", figure_3)
 
 figure_3
 ```
@@ -394,54 +388,62 @@ figure_4_point_layer <- function(colour) {
   )
 }
 
+plot_real <- ggplot(df_Real_reads, aes(x = mean_qscore, y = Identity_Qscore)) +
+  figure_4_point_layer(figure_4_colours[["Real reads"]]) +
+  reported_read_qscore_x_scale() +
+  empirical_read_qscore_y_scale() +
+  labs(x = "Reported read Q\u00adscore", y = "Empirical read Q\u00adscore", title = "Real reads") +
+  scatter_panel_theme
+
 plot_Badread <- ggplot(df_Badread, aes(x = mean_qscore, y = Identity_Qscore)) +
   figure_4_point_layer(figure_4_colours[["Badread"]]) +
-  mean_qscore_x_scale() +
-  identity_qscore_y_scale() +
+  reported_read_qscore_x_scale() +
+  empirical_read_qscore_y_scale() +
   labs(x = "", y = "", title = "Badread") +
   scatter_panel_theme
 
 plot_LongISLND <- ggplot(df_LongISLND, aes(x = mean_qscore, y = Identity_Qscore)) +
   figure_4_point_layer(figure_4_colours[["LongISLND"]]) +
-  mean_qscore_x_scale() +
-  identity_qscore_y_scale() +
+  reported_read_qscore_x_scale() +
+  empirical_read_qscore_y_scale() +
   labs(x = "", y = "", title = "LongISLND") +
   scatter_panel_theme
 
 plot_lrsim <- ggplot(df_lrsim, aes(x = mean_qscore, y = Identity_Qscore)) +
   figure_4_point_layer(figure_4_colours[["lrsim"]]) +
-  mean_qscore_x_scale() +
-  identity_qscore_y_scale() +
+  reported_read_qscore_x_scale() +
+  empirical_read_qscore_y_scale() +
   labs(x = "", y = "", title = "lrsim") +
   scatter_panel_theme
 
 plot_NanoSim <- ggplot(df_NanoSim, aes(x = mean_qscore, y = Identity_Qscore)) +
   figure_4_point_layer(figure_4_colours[["NanoSim"]]) +
-  mean_qscore_x_scale() +
-  identity_qscore_y_scale() +
+  reported_read_qscore_x_scale() +
+  empirical_read_qscore_y_scale() +
   labs(x = "", y = "", title = "NanoSim") +
   scatter_panel_theme
 
 plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = mean_qscore, y = Identity_Qscore)) +
   figure_4_point_layer(figure_4_colours[["PBSIM3"]]) +
-  mean_qscore_x_scale() +
-  identity_qscore_y_scale() +
+  reported_read_qscore_x_scale() +
+  empirical_read_qscore_y_scale() +
   labs(x = "", y = "", title = "PBSIM3") +
   scatter_panel_theme
 
 plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = mean_qscore, y = Identity_Qscore)) +
   figure_4_point_layer(figure_4_colours[["SimLoRD"]]) +
-  mean_qscore_x_scale() +
-  identity_qscore_y_scale() +
+  reported_read_qscore_x_scale() +
+  empirical_read_qscore_y_scale() +
   labs(x = "", y = "", title = "SimLoRD") +
   scatter_panel_theme
 
-plot_real <- ggplot(df_Real_reads, aes(x = mean_qscore, y = Identity_Qscore)) +
-  figure_4_point_layer(figure_4_colours[["Real reads"]]) +
-  mean_qscore_x_scale() +
-  identity_qscore_y_scale() +
-  labs(x = "Reported read Q\u00adscore", y = "Empirical read Q\u00adscore", title = "Real reads") +
-  scatter_panel_theme
+plot_Badread <- enlarge_infinity_tick(plot_Badread, "y")
+plot_LongISLND <- enlarge_infinity_tick(plot_LongISLND, "y")
+plot_lrsim <- enlarge_infinity_tick(plot_lrsim, "y")
+plot_NanoSim <- enlarge_infinity_tick(plot_NanoSim, "y")
+plot_PBSIM3 <- enlarge_infinity_tick(plot_PBSIM3, "y")
+plot_SimLoRD <- enlarge_infinity_tick(plot_SimLoRD, "y")
+plot_real <- enlarge_infinity_tick(plot_real, "y")
 
 figure_4 <- plot_grid(
   plotlist = list(
@@ -452,14 +454,7 @@ figure_4 <- plot_grid(
   ncol = 3, align = "hv", axis = "tblr"
 )
 
-ggsave(
-  "figures/figure_4.pdf",
-  figure_4,
-  height  = 160,
-  width = 200,
-  units  = "mm",
-  device = "pdf"
-)
+save_and_crop_figure("figures/figure_4.pdf", figure_4)
 
 figure_4
 ```
@@ -473,7 +468,7 @@ files <- tribble(
   "lrsim",      "results/lrsim.qscore_counts.tsv",
   "NanoSim",    "results/NanoSim.qscore_counts.tsv",
   "PBSIM3",     "results/PBSIM3.qscore_counts.tsv",
-  "simlord",    "results/simlord.qscore_counts.tsv"
+  "SimLoRD",    "results/simlord.qscore_counts.tsv"
 )
 
 per_base <- files %>%
@@ -493,14 +488,7 @@ per_base <- files %>%
     )
   )
 
-max_q <- max(per_base$qscore, na.rm = TRUE)
-
-per_base <- per_base %>%
-  mutate(tool = recode(
-    tool,
-    "simlord" = "SimLoRD",
-    "real_reads" = "Real reads"
-  ))
+per_base$error_qscore <- pmin(per_base$error_qscore, 60)  # set infinities to 60
 
 per_base_real <- per_base %>% filter(tool == "Real reads")
 ```
@@ -514,6 +502,15 @@ per_base_count_plot <- function(data, y_column, colour, title, x_label = "", y_l
     count_y_scale() +
     plot_theme
 }
+
+p_real_correct <- per_base_count_plot(
+  data = per_base_real,
+  y_column = "match",
+  colour = real_reads_colour, title = "Real reads",
+  x_label = "Reported base Q\u00adscore",
+  y_label = "Base count",
+  plot_theme = histogram_panel_theme
+)
 
 p_badread_correct <- per_base_count_plot(
   data = per_base %>% filter(tool == "Badread"),
@@ -544,15 +541,6 @@ p_nanosim_correct <- per_base_count_plot(
   plot_theme = histogram_panel_theme
 )
 
-p_real_correct <- per_base_count_plot(
-  data = per_base_real,
-  y_column = "match",
-  colour = real_reads_colour, title = "Real reads",
-  x_label = "Reported base Q\u00adscore",
-  y_label = "Base count",
-  plot_theme = histogram_panel_theme
-)
-
 p_pbsim3_correct <- per_base_count_plot(
   data = per_base %>% filter(tool == "PBSIM3"),
   y_column = "match",
@@ -577,19 +565,21 @@ figure_s1 <- plot_grid(
   ncol = 3, align = "h", axis = "b"
 )
 
-ggsave(
-  "figures/figure_s1.pdf",
-  figure_s1,
-  height  = 160,
-  width = 200,
-  units  = "mm",
-  device = "pdf"
-)
+save_and_crop_figure("figures/figure_s1.pdf", figure_s1)
 
 figure_s1
 ```
 
 ```{r figure_s2}
+p_real_error <- per_base_count_plot(
+  data = per_base_real,
+  y_column = "all_errors",
+  colour = real_reads_colour, title = "Real reads",
+  x_label = "Reported base Q\u00adscore",
+  y_label = "Base count",
+  plot_theme = histogram_panel_theme
+)
+
 p_badread_error <- per_base_count_plot(
   data = per_base %>% filter(tool == "Badread"),
   y_column = "all_errors",
@@ -619,15 +609,6 @@ p_nanosim_error <- per_base_count_plot(
   plot_theme = histogram_panel_theme
 )
 
-p_real_error <- per_base_count_plot(
-  data = per_base_real,
-  y_column = "all_errors",
-  colour = real_reads_colour, title = "Real reads",
-  x_label = "Reported base Q\u00adscore",
-  y_label = "Base count",
-  plot_theme = histogram_panel_theme
-)
-
 p_pbsim3_error <- per_base_count_plot(
   data = per_base %>% filter(tool == "PBSIM3"),
   y_column = "all_errors",
@@ -652,14 +633,7 @@ figure_s2 <- plot_grid(
   ncol = 3, align = "h", axis = "b"
 )
 
-ggsave(
-  "figures/figure_s2.pdf",
-  figure_s2,
-  height  = 160,
-  width = 200,
-  units  = "mm",
-  device = "pdf"
-)
+save_and_crop_figure("figures/figure_s2.pdf", figure_s2)
 
 figure_s2
 ```
@@ -667,13 +641,24 @@ figure_s2
 ```{r figure_s3}
 per_base_calibration_plot <- function(data, colour, title, x_label = "", y_label = "", plot_theme) {
   ggplot(data, aes(x = qscore, y = error_qscore)) +
-    geom_abline(intercept = 0, slope = 1, linetype = "dashed", colour = reference_line_colour) +
+    geom_segment(
+      x = 0, y = 0, xend = 60, yend = 60,
+      linetype = "dashed", colour = reference_line_colour
+    ) +
     geom_point(colour = colour, alpha = 0.8, size = 1.5, shape = 16) +
     labs(x = x_label, y = y_label, title = title) +
     supplementary_qscore_x_scale() +
-    supplementary_qscore_y_scale() +
+    supplementary_empirical_base_qscore_y_scale() +
     plot_theme
 }
+
+p_real_cal <- per_base_calibration_plot(
+  data = per_base_real,
+  colour = real_reads_colour, title = "Real reads",
+  x_label = "Reported base Q\u00adscore",
+  y_label = "Empirical base Q\u00adscore",
+  plot_theme = scatter_panel_theme
+)
 
 p_badread_cal <- per_base_calibration_plot(
   data = per_base %>% filter(tool == "Badread"),
@@ -700,14 +685,6 @@ p_nanosim_cal <- per_base_calibration_plot(
   plot_theme = scatter_panel_theme
 )
 
-p_real_cal <- per_base_calibration_plot(
-  data = per_base_real,
-  colour = real_reads_colour, title = "Real reads",
-  x_label = "Reported base Q\u00adscore",
-  y_label = "Empirical base Q\u00adscore",
-  plot_theme = scatter_panel_theme
-)
-
 p_pbsim3_cal <- per_base_calibration_plot(
   data = per_base %>% filter(tool == "PBSIM3"),
   colour = pbsim3_colour, title = "PBSIM3",
@@ -721,6 +698,14 @@ p_simlord_cal <- per_base_calibration_plot(
   plot_theme = scatter_panel_theme
 )
 
+p_badread_cal <- enlarge_infinity_tick(p_badread_cal, "y")
+p_longislnd_cal <- enlarge_infinity_tick(p_longislnd_cal, "y")
+p_lrsim_cal <- enlarge_infinity_tick(p_lrsim_cal, "y")
+p_nanosim_cal <- enlarge_infinity_tick(p_nanosim_cal, "y")
+p_real_cal <- enlarge_infinity_tick(p_real_cal, "y")
+p_pbsim3_cal <- enlarge_infinity_tick(p_pbsim3_cal, "y")
+p_simlord_cal <- enlarge_infinity_tick(p_simlord_cal, "y")
+
 figure_s3 <- plot_grid(
   plotlist = list(
     NULL, p_badread_cal, p_longislnd_cal,
@@ -730,14 +715,7 @@ figure_s3 <- plot_grid(
   ncol = 3, align = "hv", axis = "tblr"
 )
 
-ggsave(
-  "figures/figure_s3.pdf",
-  figure_s3,
-  height  = 160,
-  width = 200,
-  units  = "mm",
-  device = "pdf"
-)
+save_and_crop_figure("figures/figure_s3.pdf", figure_s3)
 
 figure_s3
 ```
