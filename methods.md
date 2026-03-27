@@ -1,17 +1,64 @@
 # ONT-Read-Simulator-Benchmarking
 
-Moving the *Listeria innocua* genome and reads from Ryan's directory
-into mine:
+## Basecalling and read prep
 
-```{bash}
+This is the sample: [SAMN46906078](https://www.ncbi.nlm.nih.gov/biosample/SAMN46906078). And while there are reads on SRA, I'd like to use freshly basecalled reads instead to have data as up-to-date as possible. At the time of writing, Dorado v1.1.1 and v5.2.0 basecalling models are the most current.
+
+I did the basecalling on [Spartan](https://dashboard.hpc.unimelb.edu.au) because it has big GPUs. We may just use sup reads, but I'll create fast and hac as well, just in case.
+```bash
+cd /data/scratch/projects/punim1894/O2024-029
+sbatch --job-name=dorado_basecaller --time=10:00:00 --ntasks=1 --mem=64000 --cpus-per-task=8 -p gpu-h100 --gres=gpu:1 --wrap "~/programs/dorado-1.1.1-linux-x64/bin/dorado basecaller --kit-name SQK-RBK114-96 fast pod5 > dorado_v1.1.1_fast5.2.0.bam"
+sbatch --job-name=dorado_basecaller --time=20:00:00 --ntasks=1 --mem=64000 --cpus-per-task=8 -p gpu-h100 --gres=gpu:1 --wrap "~/programs/dorado-1.1.1-linux-x64/bin/dorado basecaller --kit-name SQK-RBK114-96 hac pod5 > dorado_v1.1.1_hac5.2.0.bam"
+sbatch --job-name=dorado_basecaller --time=40:00:00 --ntasks=1 --mem=64000 --cpus-per-task=8 -p gpu-h100 --gres=gpu:1 --wrap "~/programs/dorado-1.1.1-linux-x64/bin/dorado basecaller --kit-name SQK-RBK114-96 sup pod5 > dorado_v1.1.1_sup5.2.0.bam"
+```
+
+Summary table:
+```bash
+cd /data/scratch/projects/punim1894/O2024-029
+
+sbatch --job-name=dorado_summary --time=1:00:00 --ntasks=1 --mem=64000 --cpus-per-task=8 --wrap "~/programs/dorado-1.1.1-linux-x64/bin/dorado summary dorado_v1.1.1_fast5.2.0.bam > dorado_v1.1.1_fast5.2.0.tsv"
+sbatch --job-name=dorado_summary --time=1:00:00 --ntasks=1 --mem=64000 --cpus-per-task=8 --wrap "~/programs/dorado-1.1.1-linux-x64/bin/dorado summary dorado_v1.1.1_hac5.2.0.bam > dorado_v1.1.1_hac5.2.0.tsv"
+sbatch --job-name=dorado_summary --time=1:00:00 --ntasks=1 --mem=64000 --cpus-per-task=8 --wrap "~/programs/dorado-1.1.1-linux-x64/bin/dorado summary dorado_v1.1.1_sup5.2.0.bam > dorado_v1.1.1_sup5.2.0.tsv"
+```
+
+Demultiplex:
+```bash
+cd /data/scratch/projects/punim1894/O2024-029
+
+sbatch --job-name=dorado_demux --time=4:00:00 --ntasks=1 --mem=64000 --cpus-per-task=8 --wrap "~/programs/dorado-1.1.1-linux-x64/bin/dorado demux --output-dir dorado_v1.1.1_fast5.2.0 --no-classify -t 8 dorado_v1.1.1_fast5.2.0.bam"
+sbatch --job-name=dorado_demux --time=4:00:00 --ntasks=1 --mem=64000 --cpus-per-task=8 --wrap "~/programs/dorado-1.1.1-linux-x64/bin/dorado demux --output-dir dorado_v1.1.1_hac5.2.0 --no-classify -t 8 dorado_v1.1.1_hac5.2.0.bam"
+sbatch --job-name=dorado_demux --time=4:00:00 --ntasks=1 --mem=64000 --cpus-per-task=8 --wrap "~/programs/dorado-1.1.1-linux-x64/bin/dorado demux --output-dir dorado_v1.1.1_sup5.2.0 --no-classify -t 8 dorado_v1.1.1_sup5.2.0.bam"
+```
+
+Grab just the _Listeria innocua_ reads from barcode 05:
+```bash
+cd /data/scratch/projects/punim1894/O2024-029
+
+samtools cat -o Listeria_innocua_SAMN46906078_fast5.2.0.bam dorado_v1.1.1_fast5.2.0/*_barcode05.bam
+samtools cat -o Listeria_innocua_SAMN46906078_hac5.2.0.bam dorado_v1.1.1_hac5.2.0/*_barcode05.bam
+samtools cat -o Listeria_innocua_SAMN46906078_sup5.2.0.bam dorado_v1.1.1_sup5.2.0/*_barcode05.bam
+```
+
+Convert to FASTQ:
+```bash
+cd /data/scratch/projects/punim1894/O2024-029
+
+samtools fastq -T '*' Listeria_innocua_SAMN46906078_fast5.2.0.bam | tr '\t' ' ' | paste - - - - | shuf | tr '\t' '\n' | pigz -p16 > Listeria_innocua_SAMN46906078_fast5.2.0.fastq.gz
+samtools fastq -T '*' Listeria_innocua_SAMN46906078_hac5.2.0.bam | tr '\t' ' ' | paste - - - - | shuf | tr '\t' '\n' | pigz -p16 > Listeria_innocua_SAMN46906078_hac5.2.0.fastq.gz
+samtools fastq -T '*' Listeria_innocua_SAMN46906078_sup5.2.0.bam | tr '\t' ' ' | paste - - - - | shuf | tr '\t' '\n' | pigz -p16 > Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz
+```
+
+By using `shuf`, I'm ensuring there isn't any structure in the FASTQ file. This means that taking the first n reads from the file will be an unbiased subset.
+
+Moving the *Listeria innocua* genome and reads from Ryan's directory into mine:
+```bash
 mv /home/wickr/ONT_read_sim/Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz
 
 mv /home/wickr/ONT_read_sim/Listeria_innocua_SAMN46906078_reference.fasta Listeria_innocua_SAMN46906078_reference.fasta
 ```
 
 First, I extracted some basic statistics for the reads:
-
-```{bash}
+```bash
 # Extract lengths and compute N50
 zcat Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz | awk 'NR%4==2 {print length($0)}' | sort -nr > read_lengths.txt
 
@@ -51,7 +98,7 @@ available in Environments
 
 ### Nanosim
 
-```{bash}
+```bash
 conda activate nanosim
 
 # was getting a weird error because header names were too long
@@ -60,17 +107,17 @@ zcat /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_sup5.2.0.fastq
 # run genome characterisation stage
 /home/taouk/bin/NanoSim/src/read_analysis.py genome -i /home/taouk/ONT_read_sim/longislnd/real_reads.fastq -rg /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_reference.fasta -o training2/training -t 60 --fastq
 
-#run read simulation stage
+# run read simulation stage
 /home/taouk/bin/NanoSim/src/simulator.py genome -rg /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_reference.fasta -o simulation2/simulated -x 100 --seed 3 -c training2/training -t 32 --fastq -hp 5
 
-#compress final read files
+# compress final read files
 gzip simulation/simulated_aligned_reads.fastq > simulation/simulated_aligned_reads.fastq.gz
 gzip simulation/simulated_unaligned_reads.fastq > simulation/simulated_unaligned_reads.fastq.gz
 ```
 
 ### LongISLND
 
-```{bash}
+```bash
 # Create the alignments and indices
 conda activate mapping
 
@@ -97,7 +144,7 @@ rm -r out real_reads.fastq.bam* reference.fasta.fai
 
 ### PBSIM3
 
-```{bash}
+```bash
 conda activate pbsim3
 
 #run
@@ -109,7 +156,7 @@ cat *.fq.gz > pbsim_reads.fastq.gz
 
 ### Badread
 
-```{bash}
+```bash
 # align reads to reference
 conda activate mapping
 
@@ -130,7 +177,7 @@ badread simulate --reference /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAM
 
 ### LRSim
 
-```{bash}
+```bash
 ### lrsim
 conda activate lrsim_env
 
@@ -141,7 +188,7 @@ lrsim -t 32 -m /home/taouk/bin/lrsim/models/HG002_ONT_UL.lrsm -d 100 --error=0.0
 
 ### Simlord
 
-```{bash}
+```bash
 conda activate simlord
 
 # make reads
@@ -151,10 +198,8 @@ simlord --read-reference /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN469
 
 ## Data Gathering
 
-The following code is how I extracted statistics from the simulated
-reads for analysis.
-
-```{bash}
+The following code is how I extracted statistics from the simulated reads for analysis.
+```bash
 mkdir -p mapped_sim_reads
 cd mapped_sim_reads
 
@@ -217,7 +262,7 @@ all_tools_stats.tsv is available in Results.
 
 ### This code is for making assemblies and then extracting stats
 
-```{bash}
+```bash
 
 ##### Assemblies 
 
@@ -236,7 +281,7 @@ available in Results.
 
 ### This code is for base level statistics
 
-```{bash}
+```bash
 ref="/home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_reference.fasta"
 
 declare -A reads=(
@@ -262,7 +307,7 @@ in Results.
 
 ### Extracting some basic read level statistics
 
-```{bash}
+```bash
 ### read stats summary:
 cd /home/taouk/ONT_read_sim/mapped_sim_reads
 seqkit stats -a \
