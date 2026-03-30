@@ -12,17 +12,22 @@ library(tidyverse)
 library(scales)
 library(cowplot)
 
-data <- read.csv("results/all_tools_stats.tsv", sep = "\t")
-
-data$Identity_Qscore <- -10 * log10(1 - data$actual_identity)
-data$Identity_Qscore <- pmin(data$Identity_Qscore, 50)  # set infinities to 50
+data <- read_tsv("results/read_analysis_results.tsv", show_col_types = FALSE)
 
 data <- data %>%
-  mutate(tool = recode(
-    tool,
-    "simlord" = "SimLoRD",
-    "real_reads" = "Real reads"
-  ))
+  mutate(
+    empirical_qscore = as.numeric(empirical_qscore),
+    empirical_qscore = pmin(empirical_qscore, 40),  # set infinities to 40
+    tool = recode(
+      tool,
+      "badread" = "Badread",
+      "longislnd" = "LongISLND",
+      "nanosim" = "NanoSim",
+      "pbsim3" = "PBSIM3",
+      "simlord" = "SimLoRD",
+      "real" = "Real reads"
+    )
+  )
 
 df_Badread <- data %>% filter(tool == "Badread")
 df_LongISLND <- data %>% filter(tool == "LongISLND")
@@ -98,30 +103,30 @@ scatter_panel_theme <- theme_bw() + theme(
 read_length_x_scale <- function() {
   scale_x_continuous(
     labels = label_number(scale = 1 / 1000),
-    limits = c(0, 80000)
+    limits = c(0, 60000)
   )
 }
 
 empirical_qscore_labels <- function(x) {
-  parse(text = ifelse(x == 50, "displaystyle(infinity)", as.character(x)))
+  parse(text = ifelse(x == 40, "displaystyle(infinity)", as.character(x)))
 }
 
 empirical_read_qscore_x_scale <- function() {
   scale_x_continuous(
-    limits = c(0, 51),
-    breaks =  c(seq(0, 40, 10), 50),
+    limits = c(0, 41),
+    breaks = c(seq(0, 40, 10)),
     labels = empirical_qscore_labels
   )
 }
 
 reported_read_qscore_x_scale <- function() {
-  scale_x_continuous(limits = c(0, 51))
+  scale_x_continuous(limits = c(0, 40))
 }
 
 empirical_read_qscore_y_scale <- function() {
   scale_y_continuous(
-    limits = c(0, 51),
-    breaks =  c(seq(0, 40, 10), 50),
+    limits = c(0, 41),
+    breaks = c(seq(0, 40, 10)),
     labels = empirical_qscore_labels
   )
 }
@@ -241,49 +246,49 @@ figure_1
 ```
 
 ```{r figure_2}
-plot_real <- ggplot(df_Real_reads, aes(x = Identity_Qscore)) +
+plot_real <- ggplot(df_Real_reads, aes(x = empirical_qscore)) +
   geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.15) +
   empirical_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "Empirical read Q\u00adscore", y = "Base count", title = "Real reads") +
   histogram_panel_theme
 
-plot_Badread <- ggplot(df_Badread, aes(x = Identity_Qscore)) +
+plot_Badread <- ggplot(df_Badread, aes(x = empirical_qscore)) +
   geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = badread_colour, colour = badread_colour, linewidth = 0.15) +
   empirical_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "Badread") +
   histogram_panel_theme
 
-plot_LongISLND <- ggplot(df_LongISLND, aes(x = Identity_Qscore)) +
+plot_LongISLND <- ggplot(df_LongISLND, aes(x = empirical_qscore)) +
   geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = longislnd_colour, colour = longislnd_colour, linewidth = 0.15) +
   empirical_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "LongISLND") +
   histogram_panel_theme
 
-plot_lrsim <- ggplot(df_lrsim, aes(x = Identity_Qscore)) +
+plot_lrsim <- ggplot(df_lrsim, aes(x = empirical_qscore)) +
   geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = lrsim_colour, colour = lrsim_colour, linewidth = 0.15) +
   empirical_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "lrsim") +
   histogram_panel_theme
 
-plot_NanoSim <- ggplot(df_NanoSim, aes(x = Identity_Qscore)) +
+plot_NanoSim <- ggplot(df_NanoSim, aes(x = empirical_qscore)) +
   geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = nanosim_colour, colour = nanosim_colour, linewidth = 0.15) +
   empirical_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "NanoSim") +
   histogram_panel_theme
 
-plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = Identity_Qscore)) +
+plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = empirical_qscore)) +
   geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = pbsim3_colour, colour = pbsim3_colour, linewidth = 0.15) +
   empirical_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "PBSIM3") +
   histogram_panel_theme
 
-plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = Identity_Qscore)) +
+plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = empirical_qscore)) +
   geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = simlord_colour, colour = simlord_colour, linewidth = 0.15) +
   empirical_read_qscore_x_scale() +
   count_y_scale() +
@@ -313,49 +318,49 @@ figure_2
 ```
 
 ```{r figure_3}
-plot_real <- ggplot(df_Real_reads, aes(x = mean_qscore)) +
+plot_real <- ggplot(df_Real_reads, aes(x = reported_qscore)) +
   geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.15) +
   reported_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "Reported read Q\u00adscore", y = "Base count", title = "Real reads") +
   histogram_panel_theme
 
-plot_Badread <- ggplot(df_Badread, aes(x = mean_qscore)) +
+plot_Badread <- ggplot(df_Badread, aes(x = reported_qscore)) +
   geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = badread_colour, colour = badread_colour, linewidth = 0.15) +
   reported_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "Badread") +
   histogram_panel_theme
 
-plot_LongISLND <- ggplot(df_LongISLND, aes(x = mean_qscore)) +
+plot_LongISLND <- ggplot(df_LongISLND, aes(x = reported_qscore)) +
   geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = longislnd_colour, colour = longislnd_colour, linewidth = 0.15) +
   reported_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "LongISLND") +
   histogram_panel_theme
 
-plot_lrsim <- ggplot(df_lrsim, aes(x = mean_qscore)) +
+plot_lrsim <- ggplot(df_lrsim, aes(x = reported_qscore)) +
   geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = lrsim_colour, colour = lrsim_colour, linewidth = 0.15) +
   reported_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "lrsim") +
   histogram_panel_theme
 
-plot_NanoSim <- ggplot(df_NanoSim, aes(x = mean_qscore)) +
+plot_NanoSim <- ggplot(df_NanoSim, aes(x = reported_qscore)) +
   geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = nanosim_colour, colour = nanosim_colour, linewidth = 0.15) +
   reported_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "NanoSim") +
   histogram_panel_theme
 
-plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = mean_qscore)) +
+plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = reported_qscore)) +
   geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = pbsim3_colour, colour = pbsim3_colour, linewidth = 0.15) +
   reported_read_qscore_x_scale() +
   count_y_scale() +
   labs(x = "", y = "", title = "PBSIM3") +
   histogram_panel_theme
 
-plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = mean_qscore)) +
+plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = reported_qscore)) +
   geom_histogram(aes(weight = read_length), binwidth = 0.5, position = "identity", fill = simlord_colour, colour = simlord_colour, linewidth = 0.15) +
   reported_read_qscore_x_scale() +
   count_y_scale() +
@@ -388,49 +393,64 @@ figure_4_point_layer <- function(colour) {
   )
 }
 
-plot_real <- ggplot(df_Real_reads, aes(x = mean_qscore, y = Identity_Qscore)) +
+figure_4_reference_line <- function() {
+  annotate(
+    "segment",
+    x = 0, y = 0, xend = 40, yend = 40,
+    linetype = "dashed", colour = reference_line_colour
+  )
+}
+
+plot_real <- ggplot(df_Real_reads, aes(x = reported_qscore, y = empirical_qscore)) +
+  figure_4_reference_line() +
   figure_4_point_layer(figure_4_colours[["Real reads"]]) +
   reported_read_qscore_x_scale() +
   empirical_read_qscore_y_scale() +
   labs(x = "Reported read Q\u00adscore", y = "Empirical read Q\u00adscore", title = "Real reads") +
   scatter_panel_theme
 
-plot_Badread <- ggplot(df_Badread, aes(x = mean_qscore, y = Identity_Qscore)) +
+plot_Badread <- ggplot(df_Badread, aes(x = reported_qscore, y = empirical_qscore)) +
+  figure_4_reference_line() +
   figure_4_point_layer(figure_4_colours[["Badread"]]) +
   reported_read_qscore_x_scale() +
   empirical_read_qscore_y_scale() +
   labs(x = "", y = "", title = "Badread") +
   scatter_panel_theme
 
-plot_LongISLND <- ggplot(df_LongISLND, aes(x = mean_qscore, y = Identity_Qscore)) +
+plot_LongISLND <- ggplot(df_LongISLND, aes(x = reported_qscore, y = empirical_qscore)) +
+  figure_4_reference_line() +
   figure_4_point_layer(figure_4_colours[["LongISLND"]]) +
   reported_read_qscore_x_scale() +
   empirical_read_qscore_y_scale() +
   labs(x = "", y = "", title = "LongISLND") +
   scatter_panel_theme
 
-plot_lrsim <- ggplot(df_lrsim, aes(x = mean_qscore, y = Identity_Qscore)) +
+plot_lrsim <- ggplot(df_lrsim, aes(x = reported_qscore, y = empirical_qscore)) +
+  figure_4_reference_line() +
   figure_4_point_layer(figure_4_colours[["lrsim"]]) +
   reported_read_qscore_x_scale() +
   empirical_read_qscore_y_scale() +
   labs(x = "", y = "", title = "lrsim") +
   scatter_panel_theme
 
-plot_NanoSim <- ggplot(df_NanoSim, aes(x = mean_qscore, y = Identity_Qscore)) +
+plot_NanoSim <- ggplot(df_NanoSim, aes(x = reported_qscore, y = empirical_qscore)) +
+  figure_4_reference_line() +
   figure_4_point_layer(figure_4_colours[["NanoSim"]]) +
   reported_read_qscore_x_scale() +
   empirical_read_qscore_y_scale() +
   labs(x = "", y = "", title = "NanoSim") +
   scatter_panel_theme
 
-plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = mean_qscore, y = Identity_Qscore)) +
+plot_PBSIM3 <- ggplot(df_PBSIM3, aes(x = reported_qscore, y = empirical_qscore)) +
+  figure_4_reference_line() +
   figure_4_point_layer(figure_4_colours[["PBSIM3"]]) +
   reported_read_qscore_x_scale() +
   empirical_read_qscore_y_scale() +
   labs(x = "", y = "", title = "PBSIM3") +
   scatter_panel_theme
 
-plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = mean_qscore, y = Identity_Qscore)) +
+plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = reported_qscore, y = empirical_qscore)) +
+  figure_4_reference_line() +
   figure_4_point_layer(figure_4_colours[["SimLoRD"]]) +
   reported_read_qscore_x_scale() +
   empirical_read_qscore_y_scale() +
