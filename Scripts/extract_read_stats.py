@@ -2,6 +2,8 @@
 
 import gzip
 import csv
+import math
+import os
 import re
 import sys
 
@@ -18,11 +20,26 @@ fastq_path = sys.argv[1]
 paf_path = sys.argv[2]
 
 
+def open_text(path):
+    return gzip.open(path, "rt") if path.endswith(".gz") else open(path, "r")
+
+
+def get_tool_name(path):
+    basename = os.path.basename(path)
+    if basename.endswith(".gz"):
+        basename = basename[:-3]
+    for ext in (".fastq", ".fq"):
+        if basename.lower().endswith(ext):
+            return basename[: -len(ext)]
+    return os.path.splitext(basename)[0]
+
+
 def parse_cigar(cigar):
-    ops = re.findall(r'(\d+)([MID])', cigar)
-    counts = {"M": 0, "I": 0, "D": 0}
+    ops = re.findall(r'(\d+)([MIDNSHP=X])', cigar)
+    counts = {"M": 0, "I": 0, "D": 0, "=": 0, "X": 0}
     for length, op in ops:
-        counts[op] += int(length)
+        if op in counts:
+            counts[op] += int(length)
     return counts
 
 
@@ -33,62 +50,169 @@ def get_nm(fields):
     return 0
 
 
+def reported_stats_from_phred(phred_scores):
+    mean_error = sum(10 ** (-q / 10) for q in phred_scores) / len(phred_scores)
+    reported_accuracy = 1 - mean_error
+    reported_qscore = -10 * math.log10(mean_error)
+    return reported_accuracy, reported_qscore
+
+
+def empirical_qscore_from_accuracy(empirical_accuracy):
+    if pd.isna(empirical_accuracy):
+        return None
+    if empirical_accuracy >= 1.0:
+        return math.inf
+    return -10 * math.log10(1.0 - empirical_accuracy)
+
+
+def load_paf(path):
+    best_rows = {}
+    skipped_short = 0
+    skipped_invalid = 0
+
+    with open_text(path) as handle:
+        for line in handle:
+            fields = line.rstrip("\n").split("\t")
+
+            if len(fields) < 12:
+                skipped_short += 1
+                continue
+
+            try:
+                read_length = int(fields[1])
+                unaligned_start = int(fields[2])
+                read_end = int(fields[3])
+                matches = int(fields[9])
+                alignment_block_length = int(fields[10])
+            except ValueError:
+                skipped_invalid += 1
+                continue
+
+            cigar = None
+            for field in fields[12:]:
+                if field.startswith("cg:Z:"):
+                    cigar = field[5:]
+                    break
+
+            empirical_accuracy = None
+            empirical_sub_rate = None
+            empirical_ins_rate = None
+            empirical_del_rate = None
+            if cigar:
+                cigar_counts = parse_cigar(cigar)
+                has_eqx = "=" in cigar or "X" in cigar
+                if has_eqx:
+                    total_len = (
+                        cigar_counts["="]
+                        + cigar_counts["X"]
+                        + cigar_counts["I"]
+                        + cigar_counts["D"]
+                    )
+                    if total_len > 0:
+                        empirical_accuracy = cigar_counts["="] / total_len
+                        empirical_sub_rate = cigar_counts["X"] / total_len
+                        empirical_ins_rate = cigar_counts["I"] / total_len
+                        empirical_del_rate = cigar_counts["D"] / total_len
+                else:
+                    nm = get_nm(fields[12:])
+                    subs = max(nm - (cigar_counts["I"] + cigar_counts["D"]), 0)
+                    total_len = matches + subs + cigar_counts["I"] + cigar_counts["D"]
+                    if total_len > 0:
+                        empirical_accuracy = matches / total_len
+                        empirical_sub_rate = subs / total_len
+                        empirical_ins_rate = cigar_counts["I"] / total_len
+                        empirical_del_rate = cigar_counts["D"] / total_len
+            elif alignment_block_length > 0:
+                empirical_accuracy = matches / alignment_block_length
+
+            read_name = fields[0]
+            best_row = best_rows.get(read_name)
+            if best_row is None or matches > best_row["matching_bases"]:
+                best_rows[read_name] = {
+                    "read_name": read_name,
+                    "unaligned_start": unaligned_start,
+                    "unaligned_end": read_length - read_end,
+                    "empirical_accuracy": empirical_accuracy,
+                    "empirical_sub_rate": empirical_sub_rate,
+                    "empirical_ins_rate": empirical_ins_rate,
+                    "empirical_del_rate": empirical_del_rate,
+                    "aligned": True,
+                    "matching_bases": matches,
+                }
+
+    if skipped_short or skipped_invalid:
+        print(
+            f"Skipped {skipped_short + skipped_invalid} malformed PAF lines "
+            f"({skipped_short} short, {skipped_invalid} with invalid numeric fields).",
+            file=sys.stderr,
+        )
+
+    return pd.DataFrame(
+        best_rows.values(),
+        columns=[
+            "read_name",
+            "unaligned_start",
+            "unaligned_end",
+            "empirical_accuracy",
+            "empirical_sub_rate",
+            "empirical_ins_rate",
+            "empirical_del_rate",
+            "aligned",
+        ],
+    )
+
+
 # --- Load FASTQ and calculate read-level stats ---
 fastq_dict = {}
-handle = gzip.open(fastq_path, "rt") if fastq_path.endswith(".gz") else open(fastq_path, "r")
-for record in SeqIO.parse(handle, "fastq"):
-    seq = str(record.seq).upper()
-    mean_q = sum(record.letter_annotations["phred_quality"]) / len(record)
-    gc = (seq.count("G") + seq.count("C")) / len(seq)
-    fastq_dict[record.id] = {"read_length": len(seq), "mean_qscore": mean_q, "gc_content": gc}
-handle.close()
+with open_text(fastq_path) as handle:
+    for record in SeqIO.parse(handle, "fastq"):
+        seq = str(record.seq).upper()
+        reported_accuracy, reported_qscore = reported_stats_from_phred(
+            record.letter_annotations["phred_quality"]
+        )
+        gc = (seq.count("G") + seq.count("C")) / len(seq)
+        fastq_dict[record.id] = {
+            "read_length": len(seq),
+            "reported_accuracy": reported_accuracy,
+            "reported_qscore": reported_qscore,
+            "gc_content": gc,
+        }
 
 fastq_df = (
     pd.DataFrame.from_dict(fastq_dict, orient="index")
     .reset_index()
     .rename(columns={"index": "read_name"})
 )
+fastq_df["tool"] = get_tool_name(fastq_path)
 
 # --- Load PAF ---
-df_paf = pd.read_csv(paf_path, sep="\t", header=None, engine="python", on_bad_lines="warn", dtype=str)
-
-# convert numeric columns
-for col in [1, 2, 3, 6, 7, 8, 9, 10, 11]:
-    df_paf[col] = pd.to_numeric(df_paf[col], errors="coerce")
-
-df_paf["read_name"] = df_paf[0].astype(str)
-df_paf["unaligned_start"] = df_paf[2]
-df_paf["unaligned_end"] = df_paf[1] - df_paf[3]
-df_paf["actual_identity"] = (df_paf[9] / df_paf[10]).astype(float)
-
-sub_rate_list, ins_rate_list, del_rate_list = [], [], []
-
-for _, row in df_paf.iterrows():
-    cigar_field = [x for x in row[12:] if isinstance(x, str) and x.startswith("cg:Z:")]
-    if cigar_field:
-        cigar_counts = parse_cigar(cigar_field[0].split(":")[-1])
-        aligned_len = cigar_counts["M"] + cigar_counts["I"]
-        nm = get_nm(row[12:])
-        subs = max(nm - (cigar_counts["I"] + cigar_counts["D"]), 0)
-        sub_rate_list.append(subs / aligned_len)
-        ins_rate_list.append(cigar_counts["I"] / aligned_len)
-        del_rate_list.append(cigar_counts["D"] / aligned_len)
-    else:
-        sub_rate_list.append(None)
-        ins_rate_list.append(None)
-        del_rate_list.append(None)
-
-df_paf["sub_rate"] = sub_rate_list
-df_paf["ins_rate"] = ins_rate_list
-df_paf["del_rate"] = del_rate_list
-
-df_paf = df_paf[["read_name", "unaligned_start", "unaligned_end", "actual_identity", "sub_rate", "ins_rate", "del_rate"]]
+df_paf = load_paf(paf_path)
 
 # --- Merge FASTQ and PAF ---
 merged_df = pd.merge(fastq_df, df_paf, on="read_name", how="left")
-merged_df["aligned"] = merged_df["actual_identity"].notna()
+merged_df["aligned"] = merged_df["aligned"].astype("boolean").fillna(False)
+merged_df["unaligned_start"] = merged_df["unaligned_start"].astype("Int64")
+merged_df["unaligned_end"] = merged_df["unaligned_end"].astype("Int64")
+merged_df["empirical_qscore"] = merged_df["empirical_accuracy"].apply(
+    empirical_qscore_from_accuracy
+)
 
 # --- Columns to write ---
-output_cols = ["read_name", "read_length", "unaligned_start", "unaligned_end", "actual_identity", "sub_rate", "ins_rate", "del_rate", "aligned", "mean_qscore", "gc_content"]
+output_cols = [
+    "tool",
+    "read_name",
+    "read_length",
+    "unaligned_start",
+    "unaligned_end",
+    "empirical_accuracy",
+    "empirical_qscore",
+    "empirical_sub_rate",
+    "empirical_ins_rate",
+    "empirical_del_rate",
+    "aligned",
+    "reported_accuracy",
+    "reported_qscore",
+    "gc_content",
+]
 
 merged_df[output_cols].to_csv(sys.stdout, sep="\t", index=False)
