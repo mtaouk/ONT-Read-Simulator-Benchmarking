@@ -10,4 +10,3 @@ dependencies:
   - libgomp=15.2.0=h767d61c_5
   - libstdcxx=15.2.0=h8f9b012_5
   - pbsim3=3.0.5=h9948957_2
-prefix: /home/taouk/miniconda3/envs/pbsim3

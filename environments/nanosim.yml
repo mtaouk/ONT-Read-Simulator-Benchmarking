@@ -141,4 +141,3 @@ dependencies:
   - pip:
       - pysam==0.15.4
       - setuptools==69.0.3
-prefix: /home/taouk/miniconda3/envs/nanosim
