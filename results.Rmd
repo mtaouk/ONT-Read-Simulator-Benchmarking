@@ -495,7 +495,7 @@ per_base <- files %>%
   mutate(data = map(file, ~ read_tsv(.x, show_col_types = FALSE))) %>%
   unnest(data) %>%
   mutate(
-    all_errors   = mismatch + insertion + deletion,
+    all_errors   = mismatch + insertion + deletion/2,
     total        = all_errors + match,
     error_rate   = all_errors / total,
     error_qscore = -10 * log10(error_rate)
@@ -528,7 +528,7 @@ p_real_correct <- per_base_count_plot(
   y_column = "match",
   colour = real_reads_colour, title = "Real reads",
   x_label = "Reported base Q\u00adscore",
-  y_label = "Base count",
+  y_label = "Correct base count",
   plot_theme = histogram_panel_theme
 )
 
@@ -596,7 +596,7 @@ p_real_error <- per_base_count_plot(
   y_column = "all_errors",
   colour = real_reads_colour, title = "Real reads",
   x_label = "Reported base Q\u00adscore",
-  y_label = "Base count",
+  y_label = "Error base count",
   plot_theme = histogram_panel_theme
 )
 
