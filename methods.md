@@ -1,6 +1,7 @@
 # ONT-Read-Simulator-Benchmarking
 
-## Basecalling and read prep
+
+## Basecalling
 
 This is the sample: [SAMN46906078](https://www.ncbi.nlm.nih.gov/biosample/SAMN46906078). And while there are reads on SRA, I'd like to use freshly basecalled reads instead to have data as up-to-date as possible. At the time of writing, Dorado v1.1.1 and v5.2.0 basecalling models are the most current.
 
@@ -30,7 +31,7 @@ sbatch --job-name=dorado_demux --time=4:00:00 --ntasks=1 --mem=64000 --cpus-per-
 sbatch --job-name=dorado_demux --time=4:00:00 --ntasks=1 --mem=64000 --cpus-per-task=8 --wrap "~/programs/dorado-1.1.1-linux-x64/bin/dorado demux --output-dir dorado_v1.1.1_sup5.2.0 --no-classify -t 8 dorado_v1.1.1_sup5.2.0.bam"
 ```
 
-Grab just the _Listeria innocua_ reads from barcode 05:
+Grab the _Listeria innocua_ reads from barcode 05 - will be used as training data and as the real reads:
 ```bash
 cd /data/scratch/projects/punim1894/O2024-029
 
@@ -50,215 +51,440 @@ samtools fastq -T '*' Listeria_innocua_SAMN46906078_sup5.2.0.bam | tr '\t' ' ' |
 
 By using `shuf`, I'm ensuring there isn't any structure in the FASTQ file. This means that taking the first n reads from the file will be an unbiased subset.
 
-Moving the *Listeria innocua* genome and reads from Ryan's directory into mine:
-```bash
-mv /home/wickr/ONT_read_sim/Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz
 
-mv /home/wickr/ONT_read_sim/Listeria_innocua_SAMN46906078_reference.fasta Listeria_innocua_SAMN46906078_reference.fasta
+## Prep training and test data
+
+Get the reference genome and add circularity indicators to the reference FASTA headers (Badread will use this, other tools may not):
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark
+cp ~/2025-04_Autocycler_paper/Listeria_innocua/reference.fasta reference.fasta
+sed -i "s/chromosome/chromosome circular=true/" reference.fasta
+sed -i "s/plasmid/plasmid circular=true/" reference.fasta
+samtools faidx reference.fasta
 ```
 
-First, I extracted some basic statistics for the reads:
+Copy the reads from Spartan to the MDU servers:
 ```bash
-# Extract lengths and compute N50
-zcat Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz | awk 'NR%4==2 {print length($0)}' | sort -nr > read_lengths.txt
-
-# Compute N50
-awk '{
-    sum+=$1; 
-    lengths[NR]=$1
-} END {
-    target=sum/2; 
-    running=0; 
-    for(i=1;i<=NR;i++){ 
-        running+=lengths[i]; 
-        if(running>=target){print "N50:", lengths[i]; break} 
-    }
-}' read_lengths.txt
-#N50: 8923
-
-#get length stats quick
-zcat Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz \
-  | awk 'NR%4==2 {
-      L = length($0)
-      n++
-      sum += L
-      if (L < min || min == "") min = L
-      if (L > max) max = L
-    }
-    END {print "reads:",n, "mean:",sum/n, "min:",min, "max:",max}'
-#reads: 680482 mean: 5588.16 min: 5 max: 826029
+cd ~/2025-08_ONT_read_simulator_benchmark
+mkdir real_reads
+cd real_reads
+scp spartan:/data/scratch/projects/punim1894/O2024-029/Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz real_reads.fastq.gz
 ```
+
+Some basic read stats:
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/real_reads
+seqtk size real_reads.fastq.gz
+seqkit stats real_reads.fastq.gz
+fast_count real_reads.fastq.gz  # for N50
+```
+
+Results:
+* Read count: 680,482 bp
+* Total length: 3,802,641,279 bp
+* Mean length: 5,588 bp
+* N50 length: 8,923 bp
+* Max length: 826,029 bp (almost certainly a junk read)
+
+Split the real reads into training and test sets. Since they have been shuffled, I can just take the first 53093 reads for the test set. This value was chosen (via some trial and error) to be close to 297,254,500 bp which is 100x. The remaining reads go in the training set.
+```bash
+zcat real_reads.fastq.gz | sed 's/[[:space:]].*$//' | paste - - - - | head -n 53093 | tr '\t' '\n' > test_reads.fastq
+zcat real_reads.fastq.gz | sed 's/[[:space:]].*$//' | paste - - - - | tail -n +53094 | tr '\t' '\n' > training_reads.fastq
+```
+
+Produce a short-names version of the reads (avoid a problem later with NanoSim):
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/real_reads
+cat training_reads.fastq | awk 'NR%4==1{sub(/^@.*/,"@"int(NR/4+1))}1' > training_reads_shortnames.fastq
+```
+
+
+
+
+## Read characterisation
+
+In this step, I gather a bunch of stats about the training reads that I can use in the read simulation commands.
+
+Some basic read stats:
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/real_reads
+seqtk size training_reads.fastq
+seqkit stats training_reads.fastq
+fast_count training_reads.fastq
+seqkit fx2tab -n -l training_reads.fastq | csvtk -H -t summary -f 2:mean,2:stdev
+```
+
+Align to the reference:
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/real_reads
+
+conda activate mapping
+minimap2 -c -x map-ont --eqx -t 32 ../reference.fasta training_reads.fastq | grep "tp:A:P" > training_reads.paf
+minimap2 -a -x map-ont -t 32 ../reference.fasta ../real_reads/training_reads.fastq | samtools view -u -F 0x904 | samtools sort > training_reads.bam
+samtools index training_reads.bam
+```
+
+Mean and stdev for identity and Q-score:
+```python
+paf_filename = "training_reads.paf"
+
+import math, statistics
+
+identities, qscores = [], []
+with open(paf_filename) as f:
+    for line in f:
+        parts = line.split("\t")
+        identity = int(parts[9]) / int(parts[10])
+        identities.append(identity)
+        if identity < 1.0:
+            qscores.append(-10 * math.log10(1.0 - identity))
+
+print(statistics.mean(identities))
+print(statistics.stdev(identities))
+print(statistics.mean(qscores))
+print(statistics.stdev(qscores))
+```
+
+substitution:insertion:deletion ratio:
+```python
+paf_filename = "training_reads.paf"
+
+import re
+counts = {"X": 0, "I": 0, "D": 0}
+
+with open(paf_filename, "rt") as f:
+    for line in f:
+        for part in line.rstrip().split("\t"):
+            if part.startswith("cg:Z:"):
+                for p in re.findall(r"\d+[IDX=M]", part[5:]):
+                    op = p[-1]
+                    if op in counts:
+                        counts[op] += int(p[:-1])
+                break
+
+total = counts["X"] + counts["I"] + counts["D"]
+print(f"{int(round(counts['X'] / total * 1000))}:{int(round(counts['I'] / total * 1000))}:{int(round(counts['D'] / total * 1000))}")
+```
+
+
+```bash
+samtools stats training_reads.bam | awk -F '\t' '$1=="SN" && $2=="error rate:" {print $3}'
+samtools stats -r ../reference.fasta training_reads.bam | awk -F '\t' '$1=="MPC" {for (i=4; i<=NF; i++) s+=$i} END {print s+0}'
+samtools stats training_reads.bam | awk -F '\t' '$1=="ID" && $2==1 {print $3; exit}'
+
+
+S=$(samtools stats -r ../reference.fasta training_reads.bam | awk -F '\t' '$1=="MPC" {for (i=4; i<=NF; i++) s+=$i} END {print s+0}')
+I1=$(samtools stats training_reads.bam | awk -F '\t' '$1=="ID" && $2==1 {print $3; exit}')
+SUB=$(awk -v s="$S" -v i="$I1" 'BEGIN {print (i>0 ? int(100*s/i + 0.5) : 0)}')
+```
+
+Results:
+* Read count: 627,389
+* Total length: 3,505,375,301 bp
+* Read length:
+  * mean: 5,587 bp
+  * stdev: 6,402 bp
+  * N50: 8,919 bp
+  * max: 789,802 bp (almost certainly a junk read)
+* Read accuracy:
+  * error rate mean: 0.03313
+  * identity mean: 0.9669
+  * identity stdev: 0.0546 (also the stdev for error rate)
+  * qscore mean: 19.22
+  * qscore stdev: 6.23
+* error types:
+  * sub:ins:del ratio: 400:189:410
+  * multiplying those by the mean error rate of 0.03313 gives:
+    * sub rate: 0.0133
+    * ins rate: 0.00626
+    * del rate: 0.0136
+
+
+
+
+
+## Install tools
+
+For all of the `conda` commands below, I had conda-forge and bioconda in my conda channels.
+
+Some tools were easy to install just with conda:
+```bash
+conda create -n mapping minimap2=2.30 samtools=1.22
+conda create -n nanosim nanosim=3.2.3
+conda create -n pbsim3 pbsim3=3.0.5
+conda create -n badread badread=0.4.1
+conda create -n simlord simlord=1.0.4
+```
+
+LongISLND didn't have a bioconda recipe, so it took a bit more work:
+```bash
+conda create -n longislnd openjdk=11.0 python=2.7 maven
+conda activate longislnd
+cd ~/programs
+git clone https://github.com/bioinform/longislnd.git
+cd longislnd
+sed -i 's#http://www.hdfgroup.org/ftp/HDF5/prev-releases/HDF-JAVA/hdf-java-2.11/bin#https://support.hdfgroup.org/ftp/HDF5/releases/HDF-JAVA/hdf-java-2.11/bin#' linux_build.sh
+bash linux_build.sh
+cp sample.py simulate.py LongISLND.jar ~/miniconda3/envs/longislnd/bin/
+mkdir -p ~/miniconda3/envs/longislnd/bin/build
+cp -r build/lib ~/miniconda3/envs/longislnd/bin/build/
+```
+
+The lrsim on bioconda is a different tool, so installing this one manually:
+```bash
+conda create -n lrsim bzip2 libcurl libdeflate xz zlib openssl
+conda activate lrsim
+cd ~/programs
+git clone https://github.com/CoREse/lrsim
+cd lrsim
+git submodule update --init --recursive
+sed -i 's|autoreconf -i \&\& ./configure|autoreconf -i \&\& ./configure --disable-bz2|' Makefile
+sed -i 's|^HTSLIB_LIBS = .*|HTSLIB_LIBS = -L$(CONDA_PREFIX)/lib -Wl,-rpath,$(CONDA_PREFIX)/lib -lz -lm -llzma -lcurl -lpthread -lcrypto -ldeflate|' Makefile
+make
+cp lrsim extractModel.py "$CONDA_PREFIX/bin/"
+```
+
+For each tool, I installed the latest release, with the following exception:
+* For LongISLND, the last tagged version is 0.9.5 from 9 years ago, so it seems likely that there will be no more releases. So I cloned from GitHub to get the very latest version, which has a couple little fixes after 0.9.5.
+
+
+
+
 
 ## Read Simulation
 
-The following is the code I used for each read simulator tool to
-generate the reads, including installation and any preparation steps.
-YAML files for each conda environment used in the following code is
-available in Environments
+The following is the code I used for each read simulator tool to generate the reads, including installation and any preparation steps.
 
-### Nanosim
+Whenever I had to combine multiple FASTQs together, I shuffle them like this: `tr '\t' ' ' | paste - - - - | shuf | tr '\t' '\n'`. Ensuring the reads are in a random order makes it easier to take samples of the reads later, e.g. I can take the first 1000 reads and they shouldn't be biased.
+
+
+### Run NanoSim
+
+https://github.com/BirolLab/NanoSim
+
+* `-hp` enables homopolymer length simulation.
+* `-k 5` sets the minimum homopolyer length where expansion/contraction will be applied. Chosen because the help text says 'a typical k is 5'
+* `-x 100` to get 100x read depth.
+* `-t 32` is the thread count.
 
 ```bash
+cd ~/2025-08_ONT_read_simulator_benchmark
+mkdir nanosim
+cd nanosim
 conda activate nanosim
 
-# was getting a weird error because header names were too long
-zcat /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz | awk 'NR%4==1{sub(/^@.*/,"@"NR/4)}1' | gzip > /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_shortnames.fastq.gz
-
-# run genome characterisation stage
-/home/taouk/bin/NanoSim/src/read_analysis.py genome -i /home/taouk/ONT_read_sim/longislnd/real_reads.fastq -rg /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_reference.fasta -o training2/training -t 60 --fastq
-
-# run read simulation stage
-/home/taouk/bin/NanoSim/src/simulator.py genome -rg /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_reference.fasta -o simulation2/simulated -x 100 --seed 3 -c training2/training -t 32 --fastq -hp 5
-
-# compress final read files
-gzip simulation/simulated_aligned_reads.fastq > simulation/simulated_aligned_reads.fastq.gz
-gzip simulation/simulated_unaligned_reads.fastq > simulation/simulated_unaligned_reads.fastq.gz
+read_analysis.py genome -i ../real_reads/training_reads_shortnames.fastq -rg ../reference.fasta -o training/training -t 32 --fastq -hp
+simulator.py genome -rg ../reference.fasta -c training/training -o simulation/simulation --fastq -hp -k 5 -x 100 -t 32
+cat simulation/simulation_*.fastq | tr '\t' ' ' | paste - - - - | shuf | tr '\t' '\n' > nanosim.fastq
 ```
+
 
 ### LongISLND
 
-```bash
-# Create the alignments and indices
-conda activate mapping
+https://bioinform.github.io/longislnd
 
-minimap2 -a -x map-ont -t 32 /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_reference.fasta /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz | samtools sort > real_reads.fastq.bam
-samtools index real_reads.fastq.bam
-samtools faidx /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_reference.fasta
-zcat /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_shortnames.fastq.gz \
-> real_reads.fastq
+Parameters:
+* `--coverage 100` to get 100x read depth.
+
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark
+mkdir longislnd
+cd longislnd
+
+conda activate mapping
+cp ../real_reads/training_reads.fastq .
+minimap2 -a -x map-ont -t 32 ../reference.fasta training_reads.fastq | samtools sort > training_reads.fastq.bam
+samtools index training_reads.fastq.bam
 
 conda activate longislnd
-
-# Train a LongISLND model
-/home/taouk/bin/longislnd/sample.py --input_suffix fastq.bam --read_type fastq --model_dir longislnd_model --reference /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_reference.fasta
-
-# Generate LongISLND reads
-/home/taouk/bin/longislnd/simulate.py --movie_id ONT --read_type fastq --model_dir longislnd_model --fasta /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_reference.fasta --coverage 100
-
-# merge
-cat out/*.fq | gzip > longislnd_reads.fastq.gz
-
-# Clean up
-rm -r out real_reads.fastq.bam* reference.fasta.fai
+sample.py --input_suffix fastq.bam --read_type fastq --model_dir longislnd_model --reference ../reference.fasta
+simulate.py --movie_id ONT --read_type fastq --model_dir longislnd_model --fasta ../reference.fasta --coverage 100
+cat out/*.fq | tr '\t' ' ' | paste - - - - | shuf | tr '\t' '\n' > longislnd.fastq
+rm -r out training_reads*  # clean up
 ```
+
 
 ### PBSIM3
 
+https://github.com/yukiteruono/pbsim3
+
+Parameters:
+* `--depth 100` to get 100x read depth.
+* `--difference-ratio 400:189:410` is the sub:ins:del ratio. PBSIM3 doesn't care about the scaling here, just the relative values.
+
 ```bash
+cd ~/2025-08_ONT_read_simulator_benchmark
+mkdir pbsim3
+cd pbsim3
 conda activate pbsim3
 
-#run
-pbsim --strategy wgs --method sample --sample /home/taouk/ONT_read_sim/longislnd/real_reads.fastq --genome /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_reference.fasta --depth 100  --prefix ont_sample --difference-ratio 39:24:36
-
-# merge
-cat *.fq.gz > pbsim_reads.fastq.gz
+pbsim --strategy wgs --method sample --sample ../real_reads/training_reads.fastq --genome ../reference.fasta --depth 100 --prefix ont_sample --difference-ratio 400:189:410
+zcat *.fq.gz | tr '\t' ' ' | paste - - - - | shuf | tr '\t' '\n' > pbsim3.fastq
 ```
+
 
 ### Badread
 
-```bash
-# align reads to reference
-conda activate mapping
+https://github.com/rrwick/Badread
 
-minimap2 -x map-ont  -c /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_reference.fasta /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz -t 32 > real_reads.paf
+Parameters:
+* `--quantity 100x` to get 100x read depth.
+* `--length 5587,6402` is the mean and stdev length
+* `--identity 19.22,6.23` is the mean and stdev identity (expressed as Q-scores)
+
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark
+mkdir badread
+cd badread
+
+conda activate mapping
+minimap2 -x map-ont -c ../reference.fasta ../real_reads/training_reads.fastq -t 32 > training_reads.paf
 
 conda activate badread
-
-# train for errors
-badread error_model --reads /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz --reference /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_reference.fasta --alignment real_reads.paf > ont_model.err
-
-# train for qscore
-badread qscore_model --reads /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz --reference /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_reference.fasta --alignment real_reads.paf > ont_model.qsc
-
-# simulate without perameters
-badread simulate --reference /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_reference.fasta --error_model ont_model.err --qscore_model ont_model.qsc --quantity 100x --length 8500,8500 | gzip > badread_reads.fastq.gz 
-
+badread error_model --reads ../real_reads/training_reads.fastq --reference ../reference.fasta --alignment training_reads.paf > error_model
+badread qscore_model --reads ../real_reads/training_reads.fastq --reference ../reference.fasta --alignment training_reads.paf > qscore_model
+badread simulate --reference ../reference.fasta --error_model error_model --qscore_model qscore_model --quantity 100x --length 5587,6402 --identity 19.22,6.23 > badread.fastq
 ```
 
-### LRSim
+
+### lrsim
+
+https://github.com/CoREse/lrsim
+
+Parameters:
+* `-d 100` to get 100x read depth.
+* `--error=0.03313` is from the mean error rate of the training reads.
+* `--rvarianceratio 1.648` is the error rate stdev over the mean error rate: 0.0546 / 0.03313. This option is confusingly named, as lrsim treats it as stdev/mean, not variance/mean.
+* `--eratio 100:217:212` is ins:del:sub, so I took the `400:189:410` sub:ins:del ratio that I got, rearranged the order and normalised to ins=100, which is what lrsim expects.
+* `--nolengthfloat` avoids adding extra variation on top of the trained length distribution.
 
 ```bash
-### lrsim
-conda activate lrsim_env
+cd ~/2025-08_ONT_read_simulator_benchmark
+mkdir lrsim
+cd lrsim
 
-#simulation
-lrsim -t 32 -m /home/taouk/bin/lrsim/models/HG002_ONT_UL.lrsm -d 100 --error=0.01 --rvarianceratio=8 --bfvarianceratio=1 --blocksize=200 --eratio 50:30:20 --fixedreadlength=12000 --lengthfloatratio=0.2  /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_reference.fasta | gzip > lrsim_reads.fq.gz
+conda activate lrsim
 
+minimap2 -a -x map-ont -t 32 ../reference.fasta ../real_reads/training_reads.fastq | samtools view -u -F 0x904 | samtools sort > training_reads.bam
+samtools index training_reads.bam
+samtools stats training_reads.bam | extractModel.py > training.lrsm
+
+lrsim -t 32 -m training.lrsm -d 100 --error=0.03313 --rvarianceratio 1.648 --eratio 100:217:212 --nolengthfloat ../reference.fasta > lrsim.fastq
 ```
+
 
 ### Simlord
 
+https://bitbucket.org/genomeinformatics/simlord
+
+Parameters:
+* `--sample-readlength-from-fastq` makes it copy the read length distribution from the training reads.
+* `--prob-sub 0.0133` is the substitution rate in the training reads.
+* `--prob-ins 0.00626` is the insertion rate in the training reads.
+* `--prob-del 0.0136` is the deletion rate in the training reads.
+* `--no-sam` because I'm just interested in the simulated reads, not their alignment.
+* `--norm-params -0.1 0.8` increases the accuracy variance so the reads aren't too clustered around Q15.
+* `--max-passes 1` is to turn off PacBio-style CCS.
+
 ```bash
+cd ~/2025-08_ONT_read_simulator_benchmark
+mkdir simlord
+cd simlord
+
 conda activate simlord
 
-# make reads
-simlord --read-reference /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_reference.fasta --coverage 100 --sample-readlength-from-fastq /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz --max-passes 12 --prob-ins 0.05 --prob-del 0.06 --prob-sub 0.02 --probability-threshold 0.18 --sqrt-params 0.5 0.25 --norm-params 0 0.3 --gzip simlord_reads
-
+simlord --read-reference ../reference.fasta --coverage 100 --sample-readlength-from-fastq ../real_reads/training_reads.fastq --prob-sub 0.0133 --prob-ins 0.00626 --prob-del 0.0136 --max-passes 1 --norm-params -0.1 0.8 --no-sam simlord
 ```
 
-## Data Gathering
 
-The following code is how I extracted statistics from the simulated reads for analysis.
+
+
+
+## Analysis
+
+Gather all read sets in one directory:
 ```bash
-mkdir -p mapped_sim_reads
-cd mapped_sim_reads
+cd ~/2025-08_ONT_read_simulator_benchmark
+mkdir analysis
+cp real_reads/test_reads.fastq analysis/real.fastq
+cp nanosim/nanosim.fastq analysis/
+cp longislnd/longislnd.fastq analysis/
+cp pbsim3/pbsim3.fastq analysis/
+cp badread/badread.fastq analysis/
+cp lrsim/lrsim.fastq analysis/
+cp simlord/simlord.fastq analysis/
+```
 
-conda activate seqtk
-
-# subset the real reads to make them about 100x coverage
-seqtk sample -s100 /home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_sup5.2.0.fastq.gz 50000 > real_reads_subset.fastq
-gzip real_reads_subset.fastq
-
-# copying over whichever read set I want to use for the data extraction, because sometimes I edit the upstream code and change the names but I want the "final" ones to be in one place for clarity and easy coding
-
-cp /home/taouk/ONT_read_sim/badread/badread_reads.fastq.gz Badread.fastq.gz
-cp /home/taouk/ONT_read_sim/longislnd/longislnd_reads.fastq.gz LongISLND.fastq.gz
-cp /home/taouk/ONT_read_sim/lrsim/lrsim_reads.fq.gz lrsim.fastq.gz
-cp /home/taouk/ONT_read_sim/nanosim/simulation/simulated_aligned_reads.fastq.gz NanoSim.fastq.gz
-cp /home/taouk/ONT_read_sim/pbsim/pbsim_reads.fastq.gz PBSIM3.fastq.gz
-cp /home/taouk/ONT_read_sim/simlord/simlord_reads.fastq.gz simlord.fastq.gz
-mv real_reads_subset.fastq.gz real.fastq.gz
-
+Per-read analysis:
+```bash
 conda activate mapping
 
-### mapping reads to reference:
-ref="/home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_reference.fasta"
-
-declare -A reads=(
-  [Badread]="/home/taouk/ONT_read_sim/mapped_sim_reads/Badread.fastq.gz"
-  [LongISLND]="/home/taouk/ONT_read_sim/mapped_sim_reads/LongISLND.fastq.gz"
-  [lrsim]="/home/taouk/ONT_read_sim/mapped_sim_reads/lrsim.fastq.gz" 
-  [NanoSim]="/home/taouk/ONT_read_sim/mapped_sim_reads/NanoSim.fastq.gz" 
-  [PBSIM3]="/home/taouk/ONT_read_sim/mapped_sim_reads/PBSIM3.fastq.gz"
-  [simlord]="/home/taouk/ONT_read_sim/mapped_sim_reads/simlord.fastq.gz" 
-  [real]="/home/taouk/ONT_read_sim/mapped_sim_reads/real.fastq.gz" 
-)
-
-for name in "${!reads[@]}"; do
-  echo "Aligning $name..."
-  minimap2 -t 8 -c -eqx "$ref" "${reads[$name]}" > "${name}.paf" &
+cd ~/2025-08_ONT_read_simulator_benchmark/analysis
+for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
+    minimap2 -t 32 -c --eqx ../reference.fasta "$r".fastq | grep "tp:A:P" > "$r".paf
+    python3 ../scripts/extract_read_stats.py "$r".fastq "$r".paf > "$r".tsv
 done
 
-wait
-
-# clean .pafs so that only the primary alignments for each read are kept
-grep -v "tp:A:S" Badread.paf > Badread_primary.paf
-grep -v "tp:A:S" LongISLND.paf > LongISLND_primary.paf
-grep -v "tp:A:S" lrsim.paf > lrsim_primary.paf
-grep -v "tp:A:S" NanoSim.paf > NanoSim_primary.paf
-grep -v "tp:A:S" PBSIM3.paf > PBSIM3_primary.paf
-grep -v "tp:A:S" simlord.paf > simlord_primary.paf
-grep -v "tp:A:S" real.paf > real_primary.paf
-
-# run code that gets the stats
-conda activate python_tools
-
-python extract_read_stats.py
-
+head -n1 real.tsv > read_analysis_results.tsv
+tail -n+2 badread.tsv longislnd.tsv lrsim.tsv nanosim.tsv pbsim3.tsv real.tsv simlord.tsv >> read_analysis_results.tsv
 ```
 
-extract_read_stats.py is available in Scripts. The results:
-all_tools_stats.tsv is available in Results.
+Per-base analysis:
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/analysis
+for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
+    python3 ../scripts/per_base_qscores.py "$r".fastq ../reference.fasta "$r".paf > "$r".qscore_counts.tsv
+done
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### This code is for making assemblies and then extracting stats
 
@@ -279,31 +505,6 @@ quast /home/taouk/ONT_read_sim/flye_assemblies/*/assembly.fasta -r /home/taouk/O
 assemblies.sh is available in Scripts. The QUAST results html is
 available in Results.
 
-### This code is for base level statistics
-
-```bash
-ref="/home/taouk/ONT_read_sim/reads/Listeria_innocua_SAMN46906078_reference.fasta"
-
-declare -A reads=(
-  [Badread]="Badread.fastq.gz"
-  [LongISLND]="LongISLND.fastq.gz"
-  [lrsim]="lrsim.fastq.gz" 
-  [NanoSim]="NanoSim.fastq.gz" 
-  [PBSIM3]="PBSIM3.fastq.gz"
-  [simlord]="simlord.fastq.gz" 
-  [real]="real.fastq.gz" 
-)
-
-for name in "${!reads[@]}"; do
-  echo "Calculating $name..."
-  python per_base_qscores.py "${reads[$name]}" "$ref" "${name}.paf" > $name.qscore_counts.tsv
-done
-
-wait
-```
-
-per_base_qscores.py is available in Scripts. The outputs are available
-in Results.
 
 ### Extracting some basic read level statistics
 
