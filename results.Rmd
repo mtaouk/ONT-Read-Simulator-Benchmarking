@@ -408,8 +408,6 @@ real_substitution_order <- three_mer_subs %>%
 three_mer_subs <- three_mer_subs %>%
   mutate(substitution = factor(substitution, levels = real_substitution_order))
 
-max_three_mer_error_rate <- max(three_mer_subs$error_rate)
-
 three_mer_panel_theme <- theme_bw() + theme(
   axis.text.y = element_text(size = 6),
   axis.text.x = element_text(
@@ -423,9 +421,15 @@ three_mer_panel_theme <- theme_bw() + theme(
   panel.grid.minor = element_blank()
 )
 
-make_three_mer_plot <- function(data, title, fill_colour, title_colour, show_x_axis = FALSE) {
+make_three_mer_plot <- function(data, title, fill_colour, title_colour, max_three_mer_error_rate, show_x_axis = FALSE, show_y_label = FALSE) {
   first_substitution <- levels(data$substitution)[1]
-
+  
+  if (show_y_label) {
+    y_label <- "Error rate"
+  } else {
+    y_label <- NULL
+  }
+    
   plot <- ggplot(data, aes(x = substitution, y = error_rate)) +
     geom_col(fill = fill_colour, colour = fill_colour, linewidth = 0.02) +
     annotate(
@@ -434,7 +438,7 @@ make_three_mer_plot <- function(data, title, fill_colour, title_colour, show_x_a
       y = max_three_mer_error_rate,
       label = title,
       hjust = 0,
-      vjust = 0.9,
+      vjust = 1.3,
       fontface = "bold",
       size = 3.2,
       colour = title_colour
@@ -442,10 +446,11 @@ make_three_mer_plot <- function(data, title, fill_colour, title_colour, show_x_a
     scale_x_discrete(drop = FALSE) +
     scale_y_continuous(
       limits = c(0, max_three_mer_error_rate),
-      expand = expansion(mult = c(0, 0.05)),
-      labels = label_percent(accuracy = 0.1)
+      expand = c(0, 0),
+      labels = label_percent(accuracy = 0.1),
+      breaks = seq(0.0, 0.02, 0.005)
     ) +
-    labs(x = NULL, y = "Error rate") +
+    labs(x = NULL, y = y_label) +
     three_mer_panel_theme
 
   if (!show_x_axis) {
@@ -470,63 +475,74 @@ plot_real <- make_three_mer_plot(
   title = "Real reads",
   fill_colour = real_reads_colour,
   title_colour = real_reads_dark,
-  show_x_axis = TRUE
+  max_three_mer_error_rate = 0.024,
+  show_x_axis = TRUE,
+  show_y_label = TRUE
 )
 
 plot_Badread <- make_three_mer_plot(
   data = filter(three_mer_subs, tool == "Badread"),
   title = "Badread",
   fill_colour = badread_colour,
-  title_colour = badread_dark
+  title_colour = badread_dark,
+  max_three_mer_error_rate = 0.024
 )
 
 plot_LongISLND <- make_three_mer_plot(
   data = filter(three_mer_subs, tool == "LongISLND"),
   title = "LongISLND",
   fill_colour = longislnd_colour,
-  title_colour = longislnd_dark
+  title_colour = longislnd_dark,
+  max_three_mer_error_rate = 0.024
 )
 
 plot_lrsim <- make_three_mer_plot(
   data = filter(three_mer_subs, tool == "lrsim"),
   title = "lrsim",
   fill_colour = lrsim_colour,
-  title_colour = lrsim_dark
+  title_colour = lrsim_dark,
+  max_three_mer_error_rate = 0.014
 )
 
 plot_NanoSim <- make_three_mer_plot(
   data = filter(three_mer_subs, tool == "NanoSim"),
   title = "NanoSim",
   fill_colour = nanosim_colour,
-  title_colour = nanosim_dark
+  title_colour = nanosim_dark,
+  max_three_mer_error_rate = 0.009
 )
 
 plot_PBSIM3 <- make_three_mer_plot(
   data = filter(three_mer_subs, tool == "PBSIM3"),
   title = "PBSIM3",
   fill_colour = pbsim3_colour,
-  title_colour = pbsim3_dark
+  title_colour = pbsim3_dark,
+  max_three_mer_error_rate = 0.009
 )
 
 plot_SimLoRD <- make_three_mer_plot(
   data = filter(three_mer_subs, tool == "SimLoRD"),
   title = "SimLoRD",
   fill_colour = simlord_colour,
-  title_colour = simlord_dark
+  title_colour = simlord_dark,
+  max_three_mer_error_rate = 0.014
+)
+
+aligned_three_mer_plots <- align_plots(
+  plot_real, plot_Badread, plot_LongISLND,
+  plot_lrsim, plot_NanoSim, plot_PBSIM3,
+  plot_SimLoRD,
+  align = "v",
+  axis = "l"
 )
 
 figure_2 <- plot_grid(
-  plotlist = list(
-    plot_real, plot_Badread, plot_LongISLND,
-    plot_lrsim, plot_NanoSim, plot_PBSIM3,
-    plot_SimLoRD
-  ),
+  plotlist = aligned_three_mer_plots,
   ncol = 1,
-  align = "v",
-  rel_heights = c(1.3, 1, 1, 1, 1, 1, 1)
+  rel_heights = c(1.35, 1, 1, 0.62, 0.45, 0.45, 0.62)
 )
 
-save_and_crop_figure("figures/figure_2.pdf", figure_2, height = 150, width = 170)
+save_and_crop_figure("figures/figure_2.pdf", figure_2, height = 120, width = 170)
 
 figure_2
 ```
