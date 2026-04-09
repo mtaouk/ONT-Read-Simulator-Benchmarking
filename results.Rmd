@@ -48,7 +48,7 @@ simlord_colour <- "#B460A8"
 real_reads_colour <- "#7E7E7E"
 reference_line_colour <- "grey70"
 
-adjust_figure_4_colours <- function(colour, luminance_scale = 0.3, chroma_scale = 1.25) {
+adjust_colours <- function(colour, luminance_scale = 0.3, chroma_scale = 1.25) {
   hcl_values <- colorspace::coords(
     as(colorspace::hex2RGB(colour), "polarLUV")
   )
@@ -68,7 +68,7 @@ adjust_figure_4_colours <- function(colour, luminance_scale = 0.3, chroma_scale 
   stats::setNames(adjusted, names(colour))
 }
 
-figure_4_colours <- adjust_figure_4_colours(c(
+scatter_colours <- adjust_colours(c(
   "Badread" = badread_colour,
   "LongISLND" = longislnd_colour,
   "lrsim" = lrsim_colour,
@@ -212,7 +212,7 @@ save_and_crop_figure <- function(filename, plot, height = 160, width = 200) {
 ```
 
 ```{r figure_1}
-figure_4_point_layer <- function(colour) {
+point_layer <- function(colour) {
   ggrastr::geom_point_rast(
     alpha = 0.05,
     colour = colour,
@@ -223,7 +223,7 @@ figure_4_point_layer <- function(colour) {
   )
 }
 
-figure_4_reference_line <- function() {
+reference_line <- function() {
   annotate(
     "segment",
     x = 0, y = 0, xend = 40, yend = 40,
@@ -250,8 +250,8 @@ make_read_qscore_joint_panel <- function(
     top_marginal_theme
 
   scatter <- ggplot(data, aes(x = reported_qscore, y = empirical_qscore)) +
-    figure_4_reference_line() +
-    figure_4_point_layer(scatter_colour) +
+    reference_line() +
+    point_layer(scatter_colour) +
     reported_read_qscore_x_scale() +
     empirical_read_qscore_y_scale() +
     labs(x = x_label, y = y_label) +
@@ -316,7 +316,7 @@ make_read_qscore_joint_panel <- function(
 plot_real <- make_read_qscore_joint_panel(
   data = df_Real_reads,
   histogram_colour = real_reads_colour,
-  scatter_colour = figure_4_colours[["Real reads"]],
+  scatter_colour = scatter_colours[["Real reads"]],
   title = "Real reads",
   x_label = "Reported read Q\u00adscore",
   y_label = "Empirical read Q\u00adscore"
@@ -325,42 +325,42 @@ plot_real <- make_read_qscore_joint_panel(
 plot_Badread <- make_read_qscore_joint_panel(
   data = df_Badread,
   histogram_colour = badread_colour,
-  scatter_colour = figure_4_colours[["Badread"]],
+  scatter_colour = scatter_colours[["Badread"]],
   title = "Badread"
 )
 
 plot_LongISLND <- make_read_qscore_joint_panel(
   data = df_LongISLND,
   histogram_colour = longislnd_colour,
-  scatter_colour = figure_4_colours[["LongISLND"]],
+  scatter_colour = scatter_colours[["LongISLND"]],
   title = "LongISLND"
 )
 
 plot_lrsim <- make_read_qscore_joint_panel(
   data = df_lrsim,
   histogram_colour = lrsim_colour,
-  scatter_colour = figure_4_colours[["lrsim"]],
+  scatter_colour = scatter_colours[["lrsim"]],
   title = "lrsim"
 )
 
 plot_NanoSim <- make_read_qscore_joint_panel(
   data = df_NanoSim,
   histogram_colour = nanosim_colour,
-  scatter_colour = figure_4_colours[["NanoSim"]],
+  scatter_colour = scatter_colours[["NanoSim"]],
   title = "NanoSim"
 )
 
 plot_PBSIM3 <- make_read_qscore_joint_panel(
   data = df_PBSIM3,
   histogram_colour = pbsim3_colour,
-  scatter_colour = figure_4_colours[["PBSIM3"]],
+  scatter_colour = scatter_colours[["PBSIM3"]],
   title = "PBSIM3"
 )
 
 plot_SimLoRD <- make_read_qscore_joint_panel(
   data = df_SimLoRD,
   histogram_colour = simlord_colour,
-  scatter_colour = figure_4_colours[["SimLoRD"]],
+  scatter_colour = scatter_colours[["SimLoRD"]],
   title = "SimLoRD"
 )
 
@@ -376,6 +376,130 @@ figure_1 <- plot_grid(
 save_and_crop_figure("figures/figure_1.pdf", figure_1, height = 200, width = 200)
 
 figure_1
+```
+
+```{r figure_2}
+three_mer_files <- tribble(
+  ~tool,        ~file,                     ~colour,
+  "Real reads", "results/real.3mer_subs",  real_reads_colour,
+  "Badread",    "results/badread.3mer_subs", badread_colour,
+  "LongISLND",  "results/longislnd.3mer_subs", longislnd_colour,
+  "lrsim",      "results/lrsim.3mer_subs", lrsim_colour,
+  "NanoSim",    "results/nanosim.3mer_subs", nanosim_colour,
+  "PBSIM3",     "results/pbsim3.3mer_subs", pbsim3_colour,
+  "SimLoRD",    "results/simlord.3mer_subs", simlord_colour
+)
+
+three_mer_subs <- three_mer_files %>%
+  mutate(data = map(file, ~ read_tsv(.x, show_col_types = FALSE))) %>%
+  select(-file) %>%
+  unnest(data) %>%
+  mutate(
+    substitution = paste(ref_seq, read_seq, sep = "→"),
+    tool = factor(tool, levels = three_mer_files$tool)
+  )
+
+real_substitution_order <- three_mer_subs %>%
+  filter(tool == "Real reads") %>%
+  arrange(desc(error_rate)) %>%
+  pull(substitution)
+
+three_mer_subs <- three_mer_subs %>%
+  mutate(substitution = factor(substitution, levels = real_substitution_order))
+
+max_three_mer_error_rate <- max(three_mer_subs$error_rate)
+
+three_mer_panel_theme <- theme_bw() + theme(
+  axis.text.y = element_text(size = 8),
+  axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 4),
+  axis.title = element_text(size = 9),
+  plot.title = element_text(face = "bold", size = 11, margin = margin(b = 2.0)),
+  plot.margin = margin(1, 1, 0, 0),
+  panel.background = element_rect(fill = "white"),
+  panel.grid.major.x = element_blank(),
+  panel.grid.minor = element_blank()
+)
+
+make_three_mer_plot <- function(data, title, fill_colour, show_x_axis = FALSE) {
+  plot <- ggplot(data, aes(x = substitution, y = error_rate)) +
+    geom_col(fill = fill_colour, colour = fill_colour, linewidth = 0.02) +
+    scale_x_discrete(drop = FALSE) +
+    scale_y_continuous(
+      limits = c(0, max_three_mer_error_rate),
+      expand = expansion(mult = c(0, 0.05)),
+      labels = label_number(accuracy = 0.001)
+    ) +
+    labs(x = NULL, y = "Error rate", title = title) +
+    three_mer_panel_theme
+
+  if (!show_x_axis) {
+    plot <- plot + theme(
+      axis.text.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      axis.title.x = element_blank()
+    )
+  }
+
+  plot
+}
+
+plot_real <- make_three_mer_plot(
+  data = filter(three_mer_subs, tool == "Real reads"),
+  title = "Real reads",
+  fill_colour = real_reads_colour,
+  show_x_axis = TRUE
+)
+
+plot_Badread <- make_three_mer_plot(
+  data = filter(three_mer_subs, tool == "Badread"),
+  title = "Badread",
+  fill_colour = badread_colour
+)
+
+plot_LongISLND <- make_three_mer_plot(
+  data = filter(three_mer_subs, tool == "LongISLND"),
+  title = "LongISLND",
+  fill_colour = longislnd_colour
+)
+
+plot_lrsim <- make_three_mer_plot(
+  data = filter(three_mer_subs, tool == "lrsim"),
+  title = "lrsim",
+  fill_colour = lrsim_colour
+)
+
+plot_NanoSim <- make_three_mer_plot(
+  data = filter(three_mer_subs, tool == "NanoSim"),
+  title = "NanoSim",
+  fill_colour = nanosim_colour
+)
+
+plot_PBSIM3 <- make_three_mer_plot(
+  data = filter(three_mer_subs, tool == "PBSIM3"),
+  title = "PBSIM3",
+  fill_colour = pbsim3_colour
+)
+
+plot_SimLoRD <- make_three_mer_plot(
+  data = filter(three_mer_subs, tool == "SimLoRD"),
+  title = "SimLoRD",
+  fill_colour = simlord_colour
+)
+
+figure_2 <- plot_grid(
+  plotlist = list(
+    plot_real, plot_Badread, plot_LongISLND,
+    plot_lrsim, plot_NanoSim, plot_PBSIM3,
+    plot_SimLoRD
+  ),
+  ncol = 1,
+  align = "v",
+  rel_heights = c(1.3, 1, 1, 1, 1, 1, 1)
+)
+
+save_and_crop_figure("figures/figure_2.pdf", figure_2, height = 200, width = 200)
+
+figure_2
 ```
 
 ```{r load_per_base_data}

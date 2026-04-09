@@ -441,7 +441,146 @@ done
 
 
 
+# Error analysis
 
+Install Pomoxis:
+```bash
+conda create -n pomoxis pomoxis pandas=2.2.3
+```
+
+Align reads (BAM format):
+```bash
+conda activate mapping
+
+cd ~/2025-08_ONT_read_simulator_benchmark/analysis
+for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
+    minimap2 -t 32 -a -x map-ont --eqx --MD ../reference.fasta "$r".fastq | samtools view -u -F 0x904 | samtools sort > "$r".bam
+    samtools index "$r".bam
+done
+```
+
+Homopolymers:
+```bash
+conda activate pomoxis
+
+cd ~/2025-08_ONT_read_simulator_benchmark/analysis
+for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
+    assess_homopolymers count -o "$r".homopolymers -t 32 "$r".bam
+done
+
+{
+    printf "tool\t"
+    cut -f1,14,15 real.homopolymers/hp_correct_vs_len.txt | head -n1
+    for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
+        awk -F'\t' -v OFS='\t' -v r="$r" 'NR > 1 {print r, $1, $14, $15}' \
+            "$r".homopolymers/hp_correct_vs_len.txt
+    done
+} > homopolymers.tsv
+```
+
+3-mer substitutions:
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/analysis
+for r in real badread longislnd lrsim nanosim pbsim3 simlord; do
+    python3 ../scripts/count_3mer_subs.py "$r".fastq ../reference.fasta "$r".paf > "$r".3mer_subs
+done
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Assemblies
+
+Split each read set into five equal parts (~20x each):
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/analysis
+mkdir assemblies
+cd assemblies
+
+for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
+    n=$(($(wc -l < ../"$r".fastq)/4)); q=$((n/5)); rem=$((n%5))
+    awk -v q="$q" -v r="$rem" -v p="$r" 'BEGIN{for(i=1;i<=5;i++) n[i]=q+(i<=r); f=1} {print > p "_" f ".fastq"; if(NR%4==0 && ++c==n[f] && f<5){close(p "_" f ".fastq"); f++; c=0}}' ../"$r".fastq
+done
+```
+
+Assemble each part with Flye:
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/analysis/assemblies
+
+conda activate autocycler  # has Flye v2.9.6
+
+for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
+    for n in {1..5}; do
+        flye --nano-hq "$r"_"$n".fastq -o "$r"_"$n"_flye -t 32
+    done
+done
+```
+
+Align the assemblies to the reference:
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/analysis/assemblies
+
+conda activate mapping
+
+for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
+    for n in {1..5}; do
+        minimap2 -c --eqx -x asm10 ../../reference.fasta "$r"_"$n"_flye/assembly.fasta > "$r"_"$n".paf
+    done
+done
+```
+
+Count the errors in each assembly:
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/analysis/assemblies
+
+for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
+    for n in {1..5}; do
+        printf "$r\t$n\t"
+        cat "$r"_"$n".paf | awk '$11 > 10000 {e += $11 - $10} END {print e}'
+    done
+done
+
+for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
+    for n in {1..5}; do
+        printf "$r\t$n\t"
+        cat "$r"_"$n".paf | awk '$11 > 10000' | wc -l
+    done
+done
+```
 
 
 
