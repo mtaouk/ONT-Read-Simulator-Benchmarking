@@ -11,6 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(scales)
 library(cowplot)
+library(Rcpp)
+library(ggstar)
 
 data <- read_tsv("results/read_analysis_results.tsv", show_col_types = FALSE)
 
@@ -438,7 +440,7 @@ make_three_mer_plot <- function(data, title, fill_colour, title_colour, max_thre
       y = max_three_mer_error_rate,
       label = title,
       hjust = 0,
-      vjust = 1.3,
+      vjust = 1.25,
       fontface = "bold",
       size = 3.2,
       colour = title_colour
@@ -546,6 +548,101 @@ save_and_crop_figure("figures/figure_2.pdf", figure_2, height = 120, width = 170
 
 figure_2
 ```
+```{r figure_3}
+homopolymers <- read_tsv("results/homopolymers.tsv", show_col_types = FALSE) %>%
+  mutate(
+    error_rate = 1 - ATGC,
+    tool = recode(
+      tool,
+      "badread" = "Badread",
+      "longislnd" = "LongISLND",
+      "nanosim" = "NanoSim",
+      "pbsim3" = "PBSIM3",
+      "simlord" = "SimLoRD",
+      "real" = "Real reads"
+    ),
+    tool = factor(
+      tool,
+      levels = c("Real reads", "Badread", "LongISLND", "lrsim", "NanoSim", "PBSIM3", "SimLoRD")
+    )
+  )
+
+homopolymer_colours <- c(
+  "Real reads" = real_reads_colour,
+  "Badread" = badread_colour,
+  "LongISLND" = longislnd_colour,
+  "lrsim" = lrsim_colour,
+  "NanoSim" = nanosim_colour,
+  "PBSIM3" = pbsim3_colour,
+  "SimLoRD" = simlord_colour
+)
+
+homopolymer_outline_colours <- c(
+  "Real reads" = real_reads_dark,
+  "Badread" = badread_dark,
+  "LongISLND" = longislnd_dark,
+  "lrsim" = lrsim_dark,
+  "NanoSim" = nanosim_dark,
+  "PBSIM3" = pbsim3_dark,
+  "SimLoRD" = simlord_dark
+)
+
+homopolymer_starshapes <- c(
+  "Real reads" = 15,
+  "Badread" = 13,
+  "LongISLND" = 28,
+  "lrsim" = 11,
+  "NanoSim" = 23,
+  "PBSIM3" = 5,
+  "SimLoRD" = 1
+)
+
+homopolymer_labels <- homopolymers %>%
+  group_by(tool) %>%
+  slice_max(order_by = rlen, n = 1, with_ties = FALSE) %>%
+  mutate(label_error_rate = if_else(tool == "lrsim", error_rate + 0.01, error_rate)) %>%
+  ungroup()
+
+figure_3 <- ggplot(homopolymers, aes(x = rlen, y = error_rate, group = tool)) +
+  geom_line(aes(colour = tool), linewidth = 0.4, show.legend = FALSE) +
+  ggstar::geom_star(
+    aes(starshape = tool, fill = tool),
+    colour = unname(homopolymer_outline_colours[as.character(homopolymers$tool)]),
+    size = 2.5,
+    starstroke = 0.4
+  ) +
+  geom_text(
+    data = homopolymer_labels,
+    aes(x = Inf, y = label_error_rate, label = tool),
+    colour = unname(homopolymer_outline_colours[as.character(homopolymer_labels$tool)]),
+    hjust = -0.05,
+    size = 3,
+    fontface = "bold",
+    show.legend = FALSE
+  ) +
+  scale_x_continuous(breaks = sort(unique(homopolymers$rlen)), minor_breaks = NULL) +
+  scale_y_continuous(
+    limits = c(0, 0.6),
+    breaks = seq(0, 0.6, 0.1),
+    expand = c(0, 0),
+    labels = label_percent(accuracy = 1.0)
+  ) +
+  scale_colour_manual(values = homopolymer_colours, guide = "none") +
+  scale_fill_manual(values = homopolymer_colours, guide = "none") +
+  scale_starshape_manual(values = homopolymer_starshapes, guide = "none") +
+  coord_cartesian(clip = "off") +
+  labs(x = "homopolymer length", y = "Error rate") +
+  scatter_panel_theme +
+  theme(
+    legend.position = "none",
+    plot.margin = margin(5.5, 55, 0, 0)
+  )
+
+save_and_crop_figure("figures/figure_3.pdf", figure_3, height = 90, width = 100)
+
+figure_3
+```
+
 
 ```{r load_per_base_data}
 files <- tribble(
