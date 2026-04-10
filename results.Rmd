@@ -218,6 +218,50 @@ point_layer <- function(colour) {
   )
 }
 
+weighted_histogram_rects <- function(
+  data, x_column, binwidth = 0.5,
+  weight_column = "read_length"
+) {
+  x_var <- sym(x_column)
+  weight_var <- sym(weight_column)
+  histogram_data <- data %>%
+    filter(is.finite(.data[[x_column]]), is.finite(.data[[weight_column]]))
+
+  ggplot_build(
+    ggplot(histogram_data, aes(x = !!x_var)) +
+      geom_histogram(
+        aes(weight = !!weight_var),
+        binwidth = binwidth,
+        position = "identity"
+      )
+  )$data[[1]] %>%
+    filter(y > 0) %>%
+    transmute(
+      xmin = xmin,
+      xmax = xmax,
+      ymin = 0,
+      ymax = y
+    )
+}
+
+weighted_histogram_geom <- function(histogram_rects, fill_colour) {
+  geom_rect(
+    data = histogram_rects,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    inherit.aes = FALSE,
+    fill = fill_colour,
+    colour = fill_colour,
+    linewidth = 0.02
+  )
+}
+
+weighted_histogram_layer <- function(data, x_column, fill_colour, binwidth = 0.5) {
+  weighted_histogram_geom(
+    weighted_histogram_rects(data, x_column, binwidth = binwidth),
+    fill_colour
+  )
+}
+
 reference_line <- function() {
   annotate(
     "segment",
@@ -226,28 +270,39 @@ reference_line <- function() {
   )
 }
 
+joint_panel_title <- function(title, title_colour, y) {
+  annotate(
+    "text",
+    x = 0.8,
+    y = y,
+    label = title,
+    hjust = 0.02,
+    vjust = 1.7,
+    fontface = "bold",
+    size = 4,
+    colour = title_colour
+  )
+}
+
 make_read_qscore_joint_panel <- function(
   data, histogram_colour, scatter_colour, title, title_colour,
   x_label = "", y_label = ""
 ) {
-  top_histogram <- ggplot(data, aes(x = reported_qscore)) +
-    geom_histogram(
-      aes(weight = read_length),
-      binwidth = 0.5,
-      position = "identity",
-      fill = histogram_colour,
-      colour = histogram_colour,
-      linewidth = 0.02
-    ) +
+  panel_data <- data %>%
+    filter(is.finite(empirical_qscore))
+  top_histogram_data <- weighted_histogram_rects(panel_data, "reported_qscore")
+
+  top_histogram <- ggplot() +
+    weighted_histogram_geom(top_histogram_data, histogram_colour) +
     reported_read_qscore_x_scale() +
     count_y_scale() +
     labs(x = "", y = "", title = title) +
-    top_marginal_theme +
-    coloured_title_theme(title_colour)
+    top_marginal_theme
 
-  scatter <- ggplot(data, aes(x = reported_qscore, y = empirical_qscore)) +
+  scatter <- ggplot(panel_data, aes(x = reported_qscore, y = empirical_qscore)) +
     reference_line() +
     point_layer(scatter_colour) +
+    joint_panel_title(title, title_colour, 40.8) +
     reported_read_qscore_x_scale() +
     empirical_read_qscore_y_scale() +
     labs(x = x_label, y = y_label) +
@@ -255,15 +310,8 @@ make_read_qscore_joint_panel <- function(
     theme(plot.margin = margin(0, 0, 0, 0))
   scatter_grob <- enlarge_infinity_tick(scatter, "y")
 
-  right_histogram <- ggplot(data, aes(x = empirical_qscore)) +
-    geom_histogram(
-      aes(weight = read_length),
-      binwidth = 0.5,
-      position = "identity",
-      fill = histogram_colour,
-      colour = histogram_colour,
-      linewidth = 0.02
-    ) +
+  right_histogram <- ggplot() +
+    weighted_histogram_layer(panel_data, "empirical_qscore", histogram_colour) +
     empirical_read_qscore_x_scale() +
     count_y_scale() +
     coord_flip() +
@@ -272,6 +320,10 @@ make_read_qscore_joint_panel <- function(
 
   top_grob <- ggplotGrob(top_histogram)
   right_grob <- ggplotGrob(right_histogram)
+  top_title <- which(top_grob$layout$name == "title")
+  if (length(top_title) == 1) {
+    top_grob$grobs[[top_title]] <- grid::nullGrob()
+  }
 
   top_panel <- top_grob$layout[top_grob$layout$name == "panel", ]
   right_panel <- right_grob$layout[right_grob$layout$name == "panel", ]
@@ -600,7 +652,7 @@ homopolymer_starshapes <- c(
 homopolymer_labels <- homopolymers %>%
   group_by(tool) %>%
   slice_max(order_by = rlen, n = 1, with_ties = FALSE) %>%
-  mutate(label_error_rate = if_else(tool == "lrsim", error_rate + 0.01, error_rate)) %>%
+  mutate(label_error_rate = if_else(tool == "lrsim", error_rate + 0.002, error_rate)) %>%
   ungroup()
 
 figure_3 <- ggplot(homopolymers, aes(x = rlen, y = error_rate, group = tool)) +
