@@ -469,7 +469,7 @@ three_mer_panel_theme <- theme_bw() + theme(
     margin = margin(t = 1)
   ),
   axis.title.y = element_text(size = 7),
-  plot.margin = margin(1, 1, 2, 0),
+  plot.margin = margin(2, 1, 4, 0),
   panel.background = element_rect(fill = "white"),
   panel.grid.major.x = element_blank(),
   panel.grid.minor = element_blank()
@@ -593,7 +593,7 @@ aligned_three_mer_plots <- align_plots(
 figure_2 <- plot_grid(
   plotlist = aligned_three_mer_plots,
   ncol = 1,
-  rel_heights = c(1.35, 1, 1, 0.62, 0.45, 0.45, 0.62)
+  rel_heights = c(1.33, 1, 1, 0.62, 0.44, 0.44, 0.62)
 )
 
 save_and_crop_figure("figures/figure_2.pdf", figure_2, height = 120, width = 170)
@@ -683,7 +683,7 @@ figure_3 <- ggplot(homopolymers, aes(x = rlen, y = error_rate, group = tool)) +
   scale_fill_manual(values = homopolymer_colours, guide = "none") +
   scale_starshape_manual(values = homopolymer_starshapes, guide = "none") +
   coord_cartesian(clip = "off") +
-  labs(x = "homopolymer length", y = "Error rate") +
+  labs(x = "Homopolymer length", y = "Error rate") +
   scatter_panel_theme +
   theme(
     legend.position = "none",
