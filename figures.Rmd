@@ -814,7 +814,7 @@ per_base_count_plot <- function(data, y_column, colour, title, title_colour, x_l
 }
 
 p_real_correct <- per_base_count_plot(
-  data = per_base_real,
+  data = per_base %>% filter(tool == "Real reads"),
   y_column = "match",
   colour = real_reads_colour, title = "Real reads",
   title_colour = real_reads_dark,
@@ -978,7 +978,7 @@ per_base_calibration_plot <- function(data, colour, title, title_colour, x_label
 }
 
 p_real_cal <- per_base_calibration_plot(
-  data = per_base_real,
+  data = per_base %>% filter(tool == "Real reads"),
   colour = real_reads_colour, title = "Real reads",
   title_colour = real_reads_dark,
   x_label = "Reported base Q\u00adscore",
