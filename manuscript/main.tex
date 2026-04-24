@@ -46,16 +46,16 @@
 
 \abstract{
 \textbf{Background:}  
-Oxford Nanopore Technologies (ONT) sequencing is increasingly used for whole-genome sequencing (WGS) across a wide range of applications. However, the platform has evolved rapidly through updates to flowcell chemistry and basecalling algorithms, altering the characteristics of the resulting sequencing data. Read simulators provide synthetic datasets with known ground truth, enabling controlled development and evaluation of methods, but many existing simulators were developed for earlier versions of ONT sequencing or use generic long‑read assumptions, and their realism for contemporary ONT data is unclear.
+Oxford Nanopore Technologies (ONT) sequencing is increasingly used for whole-genome sequencing (WGS) across a wide range of applications. However, the platform has evolved rapidly through updates to flowcell chemistry and basecalling algorithms, altering the characteristics of the resulting sequencing data. Read simulators provide synthetic datasets with known ground truth, enabling controlled development and evaluation of methods, but many existing simulators were developed for earlier versions of ONT sequencing or use generic long-read assumptions, and their realism for contemporary ONT data is unclear.
 \vspace{0.5\baselineskip}\\
 \textbf{Results:}  
-We benchmarked six ONT‑compatible read simulators (Badread, LongISLND, lrsim, NanoSim, PBSIM3, and SimLoRD) using a microbial genome reference and ONT R10.4.1 reads as the empirical standard. Each tool was configured to maximise realism, including training on empirical reads when supported. We compared simulated and real datasets with respect to read length, read accuracy, FASTQ quality scores and sequence error profiles, and each simulator was assessed by how well its output resembled the real reads. PBSIM3 gave the most realistic simulated reads overall. Other simulators showed clear departures from real ONT data in one or more metrics.
+We benchmarked six ONT-compatible read simulators (Badread, LongISLND, lrsim, NanoSim, PBSIM3 and SimLoRD) using a microbial genome reference and ONT R10.4.1 reads as the empirical standard. Each tool was configured to maximise realism, including training on empirical reads when supported. We compared simulated and real datasets with respect to read length, read accuracy, FASTQ quality scores and sequence error profiles. No simulator reproduced all aspects of the real data well. PBSIM3 most closely reproduced read length, read accuracy and reported FASTQ quality scores, making it a strong simulator for broad read-level realism. However, it did not capture important features of the real error profile, including context-dependent substitution rates and homopolymer-length errors. Badread and LongISLND better reproduced some aspects of the error profile, but showed other departures from the real data.
 \vspace{0.5\baselineskip}\\
 \textbf{Conclusion:}  
-PBSIM3 performed best in our benchmark, and we recommend it for simulating ONT WGS reads when realism is important. Because it is based on sampling empirical data, it is likely to work well for other long-read datasets as well, including PacBio data.
+PBSIM3 is a good general-purpose choice for many ONT WGS simulation tasks because it reproduced several key read-level properties well. However, Badread or LongISLND may be preferable for applications where error structure is more important. No evaluated tool was realistic across all tested metrics, highlighting a clear gap for improved long-read simulators.
 }
 
-\keywords{Oxford Nanopore, long‑read sequencing, read simulation, benchmarking}
+\keywords{Oxford Nanopore, long-read sequencing, read simulators, benchmarking, sequencing errors}
 
 
 
@@ -81,7 +81,7 @@ In this context, realism refers to how closely simulated reads resemble real ONT
 \section{Methods}
 
 \subsection{Simulator selection}
-A literature search identified seven long‑read simulators compatible with ONT reads. SimON‑reads (\href{https://github.com/AstraBert/simON-reads}{\nolinkurl{github.com/AstraBert/simON-reads}}) was excluded because it failed to produce reads under any of the specified configuration flags and was deemed non‑functional for this analysis. The other six simulators were successfully evaluated in this study: Badread v0.4.1\cite{wick2019badread}, LongISLND v0.9.5\cite{lau2016longislnd}, lrsim v0.7 (\href{https://github.com/CoREse/lrsim}{\nolinkurl{github.com/CoREse/lrsim}}), NanoSim v3.2.3\cite{yang2017nanosim}, PBSIM3 v3.0.5\cite{ono2022pbsim3}, and SimLoRD v1.0.4\cite{stocker2016simlord}.
+A literature search identified seven long‑read simulators compatible with ONT reads. SimON‑reads (\href{https://github.com/AstraBert/simON-reads}{\nolinkurl{github.com/AstraBert/simON-reads}}) was excluded because it failed to produce reads under any of the specified configuration flags and was deemed non‑functional for this analysis. The other six simulators were successfully evaluated in this study: Badread v0.4.1\cite{wick2019badread}, LongISLND v0.9.5 (\texttt{c458f56})\cite{lau2016longislnd}, lrsim v0.7 (\href{https://github.com/CoREse/lrsim}{\nolinkurl{github.com/CoREse/lrsim}}), NanoSim v3.2.3\cite{yang2017nanosim}, PBSIM3 v3.0.5\cite{ono2022pbsim3}, and SimLoRD v1.0.4\cite{stocker2016simlord}.
 
 \subsection{Reference data}
 Simulated reads were generated from a complete, closed assembly of \textit{Listeria innocua} strain \href{https://www.ncbi.nlm.nih.gov/biosample/SAMN46906078}{SAMN46906078}. This 2,972,545 bp genome was chosen as a reference because it provides a fully resolved, high‑confidence ground truth against which simulated reads can be aligned and characterised.
@@ -177,7 +177,7 @@ Sampled & Parametric & Constant per read \\
 
 \subsection{Read length distribution}
 
-LongISLND, lrsim, NanoSim, PBSIM3 and SimLoRD all used the training reads to model or sample read lengths, allowing them to reproduce the empirical ONT read length distribution. Their simulated read length distributions were therefore nearly identical to the real reads (Figure \ref{fig:supp_read_length}), with closely matching mean and N50 lengths (Table \ref{tab:supp_read_stats}).
+LongISLND, lrsim, NanoSim, PBSIM3 and SimLoRD all used the training reads to model or sample read lengths, allowing them to reproduce the empirical ONT read length distribution. Their simulated read length distributions were therefore very similar to the real reads (Figure \ref{fig:supp_read_length}), with closely matching mean and N50 lengths (Table \ref{tab:supp_read_stats}).
 
 In contrast, Badread generates read lengths from a gamma distribution defined by a mean read length and standard deviation. It was therefore the only tool which did not replicate the empirical distribution.
 
