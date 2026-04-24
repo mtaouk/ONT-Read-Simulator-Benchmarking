@@ -1057,7 +1057,7 @@ figure_s4
 ```
 
 
-```{r figure_s5}
+```{r empirical_vs_length}
 make_read_length_qscore_joint_panel <- function(
   data, qscore_column, histogram_colour, scatter_colour, title, title_colour,
   qscore_x_scale, qscore_y_scale, title_y, x_label = "", y_label = ""
@@ -1226,7 +1226,7 @@ plot_SimLoRD <- make_read_length_qscore_joint_panel(
   title_y = 40.0
 )
 
-figure_s5 <- plot_grid(
+empirical_vs_length <- plot_grid(
   plotlist = list(
     NULL, plot_Badread, plot_LongISLND,
     plot_real, plot_lrsim, plot_NanoSim,
@@ -1235,13 +1235,13 @@ figure_s5 <- plot_grid(
   ncol = 3
 )
 
-save_and_crop_figure("figures/figure_s5.pdf", figure_s5, height = 200, width = 200)
+save_and_crop_figure("figures/empirical_vs_length.pdf", empirical_vs_length, height = 200, width = 200)
 
-figure_s5
+empirical_vs_length
 ```
 
 
-```{r figure_s6}
+```{r reported_vs_length}
 plot_real <- make_read_length_qscore_joint_panel(
   data = df_Real_reads,
   qscore_column = "reported_qscore",
@@ -1328,7 +1328,7 @@ plot_SimLoRD <- make_read_length_qscore_joint_panel(
   title_y = 40.0
 )
 
-figure_s6 <- plot_grid(
+reported_vs_length <- plot_grid(
   plotlist = list(
     NULL, plot_Badread, plot_LongISLND,
     plot_real, plot_lrsim, plot_NanoSim,
@@ -1337,7 +1337,7 @@ figure_s6 <- plot_grid(
   ncol = 3
 )
 
-save_and_crop_figure("figures/figure_s6.pdf", figure_s6, height = 200, width = 200)
+save_and_crop_figure("figures/reported_vs_length.pdf", reported_vs_length, height = 200, width = 200)
 
-figure_s6
+reported_vs_length
 ```
