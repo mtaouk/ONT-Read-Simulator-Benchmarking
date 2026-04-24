@@ -441,7 +441,13 @@ for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
 done
 
 head -n1 real.tsv > read_analysis_results.tsv
-tail -n+2 badread.tsv longislnd.tsv lrsim.tsv nanosim.tsv pbsim3.tsv real.tsv simlord.tsv >> read_analysis_results.tsv
+tail -n+2 badread.tsv >> read_analysis_results.tsv
+tail -n+2 longislnd.tsv >> read_analysis_results.tsv
+tail -n+2 lrsim.tsv >> read_analysis_results.tsv
+tail -n+2 nanosim.tsv >> read_analysis_results.tsv
+tail -n+2 pbsim3.tsv >> read_analysis_results.tsv
+tail -n+2 real.tsv >> read_analysis_results.tsv
+tail -n+2 simlord.tsv >> read_analysis_results.tsv
 ```
 
 Per-base analysis:
