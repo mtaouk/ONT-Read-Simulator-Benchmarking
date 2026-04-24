@@ -468,6 +468,7 @@ Install Pomoxis:
 ```bash
 conda create -n pomoxis pomoxis pandas=2.2.3
 ```
+Latest version was 0.3.16.
 
 Align reads (BAM format):
 ```bash
