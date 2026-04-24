@@ -308,6 +308,15 @@ rm -r out training_reads*  # clean up
 
 https://github.com/yukiteruono/pbsim3
 
+PBSIM3 has three mode options: `errhmm`, `qshmm` and `sample`
+* `errhmm` models errors, but it doesn't generate Q-strings (just `!`).
+  * Not ideal for realism.
+* `qshmm` models Q-strings and then adds errors based on the Q-scores.
+  * Not bad, but the next option is better.
+* `sample` copies Q-string from the training reads and then adds errors based on the Q-scores.
+  * Better than `qshmm` because the Q-strings are now perfectly realistic (they are real Q-strings).
+  * So this one is best, and that's what I'll use.
+
 Parameters:
 * `--depth 100` to get 100x read depth.
 * `--difference-ratio 400:189:410` is the sub:ins:del ratio. PBSIM3 doesn't care about the scaling here, just the relative values.
