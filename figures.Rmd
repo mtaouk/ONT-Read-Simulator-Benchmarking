@@ -127,7 +127,7 @@ empirical_qscore_labels <- function(x) {
 
 empirical_read_qscore_x_scale <- function() {
   scale_x_continuous(
-    limits = c(0, 41),
+    limits = c(0, 40.1),
     breaks = c(seq(0, 40, 10)),
     labels = empirical_qscore_labels
   )
@@ -137,9 +137,13 @@ reported_read_qscore_x_scale <- function() {
   scale_x_continuous(limits = c(0, 40))
 }
 
+reported_read_qscore_y_scale <- function() {
+  scale_y_continuous(limits = c(0, 40))
+}
+
 empirical_read_qscore_y_scale <- function() {
   scale_y_continuous(
-    limits = c(0, 41),
+    limits = c(0, 40.1),
     breaks = c(seq(0, 40, 10)),
     labels = empirical_qscore_labels
   )
@@ -270,14 +274,14 @@ reference_line <- function() {
   )
 }
 
-joint_panel_title <- function(title, title_colour, y) {
+joint_panel_title <- function(title, title_colour, y, x = 0.8) {
   annotate(
     "text",
-    x = 0.8,
+    x = x,
     y = y,
     label = title,
     hjust = 0.02,
-    vjust = 1.7,
+    vjust = 1.4,
     fontface = "bold",
     size = 4,
     colour = title_colour
@@ -302,7 +306,7 @@ make_read_qscore_joint_panel <- function(
   scatter <- ggplot(panel_data, aes(x = reported_qscore, y = empirical_qscore)) +
     reference_line() +
     point_layer(scatter_colour) +
-    joint_panel_title(title, title_colour, 40.8) +
+    joint_panel_title(title, title_colour, 40.0) +
     reported_read_qscore_x_scale() +
     empirical_read_qscore_y_scale() +
     labs(x = x_label, y = y_label) +
@@ -1050,4 +1054,290 @@ figure_s4 <- plot_grid(
 save_and_crop_figure("figures/figure_s4.pdf", figure_s4, height = 160, width = 200)
 
 figure_s4
+```
+
+
+```{r figure_s5}
+make_read_length_qscore_joint_panel <- function(
+  data, qscore_column, histogram_colour, scatter_colour, title, title_colour,
+  qscore_x_scale, qscore_y_scale, title_y, x_label = "", y_label = ""
+) {
+  panel_data <- data %>%
+    filter(is.finite(read_length), is.finite(.data[[qscore_column]]))
+  top_histogram_data <- weighted_histogram_rects(
+    panel_data, "read_length", binwidth = 1000
+  )
+
+  top_histogram <- ggplot() +
+    weighted_histogram_geom(top_histogram_data, histogram_colour) +
+    read_length_x_scale() +
+    count_y_scale() +
+    labs(x = "", y = "", title = title) +
+    top_marginal_theme
+
+  scatter <- ggplot(panel_data, aes(x = read_length, y = .data[[qscore_column]])) +
+    point_layer(scatter_colour) +
+    joint_panel_title(title, title_colour, y = title_y, x = 1200) +
+    read_length_x_scale() +
+    qscore_y_scale() +
+    labs(x = x_label, y = y_label) +
+    scatter_panel_theme +
+    theme(plot.margin = margin(0, 0, 0, 0))
+
+  scatter_grob <- ggplotGrob(scatter)
+  if (identical(qscore_column, "empirical_qscore")) {
+    scatter_grob <- enlarge_infinity_tick(scatter, "y")
+  }
+
+  right_histogram <- ggplot() +
+    weighted_histogram_layer(panel_data, qscore_column, histogram_colour) +
+    qscore_x_scale() +
+    count_y_scale() +
+    coord_flip() +
+    labs(x = "", y = "") +
+    right_marginal_theme
+
+  top_grob <- ggplotGrob(top_histogram)
+  right_grob <- ggplotGrob(right_histogram)
+  top_title <- which(top_grob$layout$name == "title")
+  if (length(top_title) == 1) {
+    top_grob$grobs[[top_title]] <- grid::nullGrob()
+  }
+
+  top_panel <- top_grob$layout[top_grob$layout$name == "panel", ]
+  right_panel <- right_grob$layout[right_grob$layout$name == "panel", ]
+  top_axis_b <- unique(top_grob$layout$t[top_grob$layout$name == "axis-b"])
+  right_axis_l <- unique(right_grob$layout$l[right_grob$layout$name == "axis-l"])
+
+  top_grob$widths <- scatter_grob$widths
+  right_grob$heights <- scatter_grob$heights
+
+  top_grob$heights[top_axis_b] <- grid::unit(0, "pt")
+  right_grob$widths[right_axis_l] <- grid::unit(0, "pt")
+
+  top_grob$heights[top_panel$t] <- grid::unit(joint_marginal_top_height, "null")
+  right_grob$widths[right_panel$l] <- grid::unit(joint_marginal_right_width, "null")
+
+  top_row <- plot_grid(
+    top_grob,
+    NULL,
+    nrow = 1,
+    rel_widths = c(1, joint_marginal_right_width)
+  )
+
+  bottom_row <- plot_grid(
+    scatter_grob,
+    right_grob,
+    nrow = 1,
+    rel_widths = c(1, joint_marginal_right_width)
+  )
+
+  plot_grid(
+    top_row,
+    bottom_row,
+    ncol = 1,
+    rel_heights = c(joint_marginal_top_height, 1)
+  )
+}
+
+plot_real <- make_read_length_qscore_joint_panel(
+  data = df_Real_reads,
+  qscore_column = "empirical_qscore",
+  histogram_colour = real_reads_colour,
+  scatter_colour = real_reads_dark,
+  title = "Real reads",
+  title_colour = real_reads_dark,
+  qscore_x_scale = empirical_read_qscore_x_scale,
+  qscore_y_scale = empirical_read_qscore_y_scale,
+  title_y = 40.0,
+  x_label = "Read length (kbp)",
+  y_label = "Empirical read Q\u00adscore"
+)
+
+plot_Badread <- make_read_length_qscore_joint_panel(
+  data = df_Badread,
+  qscore_column = "empirical_qscore",
+  histogram_colour = badread_colour,
+  scatter_colour = badread_dark,
+  title = "Badread",
+  title_colour = badread_dark,
+  qscore_x_scale = empirical_read_qscore_x_scale,
+  qscore_y_scale = empirical_read_qscore_y_scale,
+  title_y = 40.0
+)
+
+plot_LongISLND <- make_read_length_qscore_joint_panel(
+  data = df_LongISLND,
+  qscore_column = "empirical_qscore",
+  histogram_colour = longislnd_colour,
+  scatter_colour = longislnd_dark,
+  title = "LongISLND",
+  title_colour = longislnd_dark,
+  qscore_x_scale = empirical_read_qscore_x_scale,
+  qscore_y_scale = empirical_read_qscore_y_scale,
+  title_y = 40.0
+)
+
+plot_lrsim <- make_read_length_qscore_joint_panel(
+  data = df_lrsim,
+  qscore_column = "empirical_qscore",
+  histogram_colour = lrsim_colour,
+  scatter_colour = lrsim_dark,
+  title = "lrsim",
+  title_colour = lrsim_dark,
+  qscore_x_scale = empirical_read_qscore_x_scale,
+  qscore_y_scale = empirical_read_qscore_y_scale,
+  title_y = 40.0
+)
+
+plot_NanoSim <- make_read_length_qscore_joint_panel(
+  data = df_NanoSim,
+  qscore_column = "empirical_qscore",
+  histogram_colour = nanosim_colour,
+  scatter_colour = nanosim_dark,
+  title = "NanoSim",
+  title_colour = nanosim_dark,
+  qscore_x_scale = empirical_read_qscore_x_scale,
+  qscore_y_scale = empirical_read_qscore_y_scale,
+  title_y = 40.0
+)
+
+plot_PBSIM3 <- make_read_length_qscore_joint_panel(
+  data = df_PBSIM3,
+  qscore_column = "empirical_qscore",
+  histogram_colour = pbsim3_colour,
+  scatter_colour = pbsim3_dark,
+  title = "PBSIM3",
+  title_colour = pbsim3_dark,
+  qscore_x_scale = empirical_read_qscore_x_scale,
+  qscore_y_scale = empirical_read_qscore_y_scale,
+  title_y = 40.0
+)
+
+plot_SimLoRD <- make_read_length_qscore_joint_panel(
+  data = df_SimLoRD,
+  qscore_column = "empirical_qscore",
+  histogram_colour = simlord_colour,
+  scatter_colour = simlord_dark,
+  title = "SimLoRD",
+  title_colour = simlord_dark,
+  qscore_x_scale = empirical_read_qscore_x_scale,
+  qscore_y_scale = empirical_read_qscore_y_scale,
+  title_y = 40.0
+)
+
+figure_s5 <- plot_grid(
+  plotlist = list(
+    NULL, plot_Badread, plot_LongISLND,
+    plot_real, plot_lrsim, plot_NanoSim,
+    NULL, plot_PBSIM3, plot_SimLoRD
+  ),
+  ncol = 3
+)
+
+save_and_crop_figure("figures/figure_s5.pdf", figure_s5, height = 200, width = 200)
+
+figure_s5
+```
+
+
+```{r figure_s6}
+plot_real <- make_read_length_qscore_joint_panel(
+  data = df_Real_reads,
+  qscore_column = "reported_qscore",
+  histogram_colour = real_reads_colour,
+  scatter_colour = real_reads_dark,
+  title = "Real reads",
+  title_colour = real_reads_dark,
+  qscore_x_scale = reported_read_qscore_x_scale,
+  qscore_y_scale = reported_read_qscore_y_scale,
+  title_y = 40.0,
+  x_label = "Read length (kbp)",
+  y_label = "Reported read Q\u00adscore"
+)
+
+plot_Badread <- make_read_length_qscore_joint_panel(
+  data = df_Badread,
+  qscore_column = "reported_qscore",
+  histogram_colour = badread_colour,
+  scatter_colour = badread_dark,
+  title = "Badread",
+  title_colour = badread_dark,
+  qscore_x_scale = reported_read_qscore_x_scale,
+  qscore_y_scale = reported_read_qscore_y_scale,
+  title_y = 40.0
+)
+
+plot_LongISLND <- make_read_length_qscore_joint_panel(
+  data = df_LongISLND,
+  qscore_column = "reported_qscore",
+  histogram_colour = longislnd_colour,
+  scatter_colour = longislnd_dark,
+  title = "LongISLND",
+  title_colour = longislnd_dark,
+  qscore_x_scale = reported_read_qscore_x_scale,
+  qscore_y_scale = reported_read_qscore_y_scale,
+  title_y = 40.0
+)
+
+plot_lrsim <- make_read_length_qscore_joint_panel(
+  data = df_lrsim,
+  qscore_column = "reported_qscore",
+  histogram_colour = lrsim_colour,
+  scatter_colour = lrsim_dark,
+  title = "lrsim",
+  title_colour = lrsim_dark,
+  qscore_x_scale = reported_read_qscore_x_scale,
+  qscore_y_scale = reported_read_qscore_y_scale,
+  title_y = 40.0
+)
+
+plot_NanoSim <- make_read_length_qscore_joint_panel(
+  data = df_NanoSim,
+  qscore_column = "reported_qscore",
+  histogram_colour = nanosim_colour,
+  scatter_colour = nanosim_dark,
+  title = "NanoSim",
+  title_colour = nanosim_dark,
+  qscore_x_scale = reported_read_qscore_x_scale,
+  qscore_y_scale = reported_read_qscore_y_scale,
+  title_y = 40.0
+)
+
+plot_PBSIM3 <- make_read_length_qscore_joint_panel(
+  data = df_PBSIM3,
+  qscore_column = "reported_qscore",
+  histogram_colour = pbsim3_colour,
+  scatter_colour = pbsim3_dark,
+  title = "PBSIM3",
+  title_colour = pbsim3_dark,
+  qscore_x_scale = reported_read_qscore_x_scale,
+  qscore_y_scale = reported_read_qscore_y_scale,
+  title_y = 40.0
+)
+
+plot_SimLoRD <- make_read_length_qscore_joint_panel(
+  data = df_SimLoRD,
+  qscore_column = "reported_qscore",
+  histogram_colour = simlord_colour,
+  scatter_colour = simlord_dark,
+  title = "SimLoRD",
+  title_colour = simlord_dark,
+  qscore_x_scale = reported_read_qscore_x_scale,
+  qscore_y_scale = reported_read_qscore_y_scale,
+  title_y = 40.0
+)
+
+figure_s6 <- plot_grid(
+  plotlist = list(
+    NULL, plot_Badread, plot_LongISLND,
+    plot_real, plot_lrsim, plot_NanoSim,
+    NULL, plot_PBSIM3, plot_SimLoRD
+  ),
+  ncol = 3
+)
+
+save_and_crop_figure("figures/figure_s6.pdf", figure_s6, height = 200, width = 200)
+
+figure_s6
 ```
