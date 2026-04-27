@@ -172,8 +172,8 @@ supplementary_qscore_x_scale <- function() {
 supplementary_empirical_base_qscore_y_scale <- function() {
   scale_y_continuous(
     limits = c(0, 60),
-    breaks = c(seq(0, 50, 10), 60),
-    labels = parse(text = c(as.character(seq(0, 50, 10)), "infinity"))
+    breaks = c(seq(0, 40, 20), 60),
+    labels = parse(text = c(as.character(seq(0, 40, 20)), "infinity"))
   )
 }
 
@@ -1051,7 +1051,7 @@ figure_s4 <- plot_grid(
   ncol = 3, align = "hv", axis = "tblr"
 )
 
-save_and_crop_figure("figures/figure_s4.pdf", figure_s4, height = 160, width = 200)
+save_and_crop_figure("figures/figure_s4.pdf", figure_s4, height = 170, width = 200)
 
 figure_s4
 ```
