@@ -1,3 +1,13 @@
 .DS_Store
 .Rhistory
 figures/
+
+# LaTeX build files
+manuscript/*.aux
+manuscript/*.bbl
+manuscript/*.blg
+manuscript/*.fdb_latexmk
+manuscript/*.fls
+manuscript/*.log
+manuscript/*.out
+manuscript/*.synctex.gz

@@ -238,7 +238,7 @@ In this study, we did not exhaustively explore every possible configuration of e
 
 Another limitation is that our benchmarking focused only on whole-genome sequencing. Other applications of long-read sequencing, such as transcriptomics, amplicons and metagenomics, may prioritise different properties of simulated reads. We also did not assess where reads were placed on the reference genome. Real sequencing datasets may show positional biases in read start sites or coverage, arising from library preparation, sequence composition or other experimental factors, and these biases could be important for some downstream analyses.
 
-Although this benchmark used a bacterial genome and ONT whole-genome sequencing data, we expect the conclusions to generalise more broadly. The bacterial dataset was a practical choice because the read sets were not too large and the reference genome was highly accurate, but the properties we assessed are not specific to bacterial genomics. We therefore expect similar conclusions to hold for other organisms, provided that the simulator is trained on matching sequencing data. For example, simulated human reads would ideally be trained on real human sequencing data. We also note that this study considered only ONT data, and other long-read platforms, such as PacBio HiFi, have different error profiles. Nevertheless, given the underlying approaches used by the strongest-performing tools (PBSIM3 and Badread), we suspect their relative strengths and weaknesses would remain similar on data from other platforms. This could, however, be tested directly in future work.
+Although this benchmark used a bacterial genome and ONT whole-genome sequencing data, we expect the conclusions to generalise more broadly. The bacterial dataset was a practical choice because the read sets were not too large and the reference genome was highly accurate, but the properties we assessed are not specific to bacterial genomics. We therefore expect similar conclusions to hold for other organisms, provided that the simulator is trained on matching sequencing data. For example, simulated human reads would ideally be trained on real human sequencing data. We also note that this study considered only ONT data, and other long-read platforms, such as PacBio HiFi, have different error profiles. Nevertheless, given the underlying approaches used by the tools, we suspect their relative strengths and weaknesses would remain similar on data from other platforms. This could, however, be tested directly in future work.
 
 
 \section{Conclusions}
@@ -295,8 +295,7 @@ Supplementary methods are available at \href{https://github.com/mtaouk/ONT-Read-
 >{\raggedright\arraybackslash}m{0.08\textwidth}
 >{\raggedleft\arraybackslash}m{0.08\textwidth}
 >{\raggedleft\arraybackslash}m{0.10\textwidth}
->{\raggedleft\arraybackslash}m{0.08\textwidth}
->{\raggedleft\arraybackslash}m{0.08\textwidth}
+>{\raggedleft\arraybackslash}m{0.07\textwidth}
 >{\raggedleft\arraybackslash}m{0.08\textwidth}
 >{\raggedleft\arraybackslash}m{0.08\textwidth}
 >{\raggedleft\arraybackslash}m{0.08\textwidth}
