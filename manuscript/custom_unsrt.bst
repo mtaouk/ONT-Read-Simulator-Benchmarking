@@ -13,6 +13,7 @@ ENTRY
     author
     booktitle
     chapter
+    doi
     edition
     editor
     howpublished
@@ -276,6 +277,13 @@ FUNCTION {format.date}
         { month " " * year * }
       if$
     }
+  if$
+}
+
+FUNCTION {format.doi}
+{ doi empty$
+    { "" }
+    { "\doi{" doi * "}" * }
   if$
 }
 
@@ -549,6 +557,8 @@ FUNCTION {article}
   if$
   new.block
   note output
+  new.block
+  format.doi output
   fin.entry
 }
 
