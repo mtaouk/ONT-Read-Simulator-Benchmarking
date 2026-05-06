@@ -80,7 +80,7 @@ fast_count real_reads.fastq.gz  # for N50
 ```
 
 Results:
-* Read count: 680,482 bp
+* Read count: 680,482
 * Total length: 3,802,641,279 bp
 * Mean length: 5,588 bp
 * N50 length: 8,923 bp
@@ -263,7 +263,7 @@ Whenever I had to combine multiple FASTQs together, I shuffle them like this: `t
 https://github.com/BirolLab/NanoSim
 
 * `-hp` enables homopolymer length simulation.
-* `-k 5` sets the minimum homopolyer length where expansion/contraction will be applied. Chosen because the help text says 'a typical k is 5'
+* `-k 5` sets the minimum homopolymer length where expansion/contraction will be applied. Chosen because the help text says 'a typical k is 5'
 * `-x 100` to get 100x read depth.
 * `-t 32` is the thread count.
 
