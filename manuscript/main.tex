@@ -176,6 +176,7 @@ Read quality depends on a modelled number of PacBio CCS sequencing passes throug
 Sampled & Parametric & Constant per read \\
 \bottomrule
 \end{tabular}
+\vspace{1.0\baselineskip}
 \end{table*}
 
 
@@ -242,7 +243,7 @@ The remaining simulators were less suitable for realistic ONT read simulation. l
 
 In this study, we did not exhaustively explore every possible configuration of each tool. We aimed to run each one in the way that we judged most likely to maximise overall realism. Other configurations may have produced different results. For example, we enabled NanoSim's homopolymer modelling because it is intended to better reflect ONT data, but it is possible that NanoSim would have performed better on our dataset with this feature disabled. PBSIM3 includes an error-model HMM mode that may improve error realism, but this comes with trade-offs: read lengths and Q-scores are then generated from parametric models rather than sampled from empirical data, and it does not support training a custom model on user-provided data.
 
-Another limitation is that our benchmarking focused only on WGS. Other applications of long-read sequencing, such as transcriptomics, amplicons and metagenomics, may prioritise different properties of simulated reads. We also did not assess where reads were placed on the reference genome. Real sequencing datasets may show positional biases in read start sites or coverage, arising from library preparation, sequence composition or other experimental factors, and these biases could be important for some downstream analyses.
+Another limitation is that our benchmarking focused only on WGS. Other applications of long-read sequencing, such as transcriptomics, amplicons and metagenomics, may prioritise different properties of simulated reads. We also did not assess how reads were distributed across the reference genome. Real sequencing datasets may show positional biases in read start sites or coverage, arising from library preparation, sequence composition or other experimental factors, and these biases could be important for some downstream analyses.
 
 Although this benchmark used a bacterial genome and ONT whole-genome sequencing data, we expect the conclusions to generalise more broadly. The bacterial dataset was a practical choice because the read sets were not too large and the reference genome was highly accurate, but the properties we assessed are not specific to bacterial genomics. We therefore expect similar conclusions to hold for other organisms, provided that simulations are trained on matching empirical data, such as real human reads for human-read simulation. We also note that this study considered only ONT data, and other long-read platforms, such as PacBio HiFi, have different error profiles. Nevertheless, given the underlying approaches used by the tools, we suspect their relative strengths and weaknesses would remain similar on data from other platforms. Future work could directly test how well these conclusions generalise beyond ONT sequencing.
 
@@ -257,7 +258,7 @@ No simulator produced reads that looked realistic across all tested metrics. Whe
 
 
 \section{Availability of data and materials}
-Detailed commands, custom scripts and complete analysis outputs are publicly available at:\\\href{https://github.com/mtaouk/ONT-Read-Simulator-Benchmarking}{\nolinkurl{github.com/mtaouk/ONT-Read-Simulator-Benchmarking}}
+Detailed commands, custom scripts and complete analysis outputs are publicly available at: \href{https://github.com/mtaouk/ONT-Read-Simulator-Benchmarking}{\nolinkurl{github.com/mtaouk/ONT-Read-Simulator-Benchmarking}}
 
 
 \section{Competing interests}
@@ -272,7 +273,7 @@ R.R.W. conceived the study. M.L.T. and R.R.W. performed analyses and drafted the
 
 
 
-
+\clearpage
 \bibliographystyle{custom_unsrt}
 \bibliography{references}
 
@@ -288,9 +289,7 @@ R.R.W. conceived the study. M.L.T. and R.R.W. performed analyses and drafted the
 
 
 \section*{Supplementary Information}
-
-
-Supplementary methods are available at \href{https://github.com/mtaouk/ONT-Read-Simulator-Benchmarking}{\nolinkurl{github.com/mtaouk/ONT-Read-Simulator-Benchmarking}}.
+Supplementary methods are available at: \href{https://github.com/mtaouk/ONT-Read-Simulator-Benchmarking}{\nolinkurl{github.com/mtaouk/ONT-Read-Simulator-Benchmarking}}.
 
 
 \begin{table}[!htbp]
