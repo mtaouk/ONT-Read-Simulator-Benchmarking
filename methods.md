@@ -507,3 +507,26 @@ for r in real badread longislnd lrsim nanosim pbsim3 simlord; do
     python3 ../scripts/count_3mer_subs.py "$r".fastq ../reference.fasta "$r".paf > "$r".3mer_subs
 done
 ```
+
+
+
+
+
+# Tarball data for public repo
+
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark
+mkdir public_data_tarball
+cd public_data_tarball
+cp ../badread/badread.fastq .
+cp ../longislnd/longislnd.fastq .
+cp ../lrsim/lrsim.fastq .
+cp ../nanosim/nanosim.fastq .
+cp ../pbsim3/pbsim3.fastq .
+cp ../simlord/simlord.fastq .
+cp ../real_reads/test_reads.fastq real_reads_test_reads.fastq
+cp ../real_reads/training_reads.fastq real_reads_training_reads.fastq
+cp ../reference.fasta .
+pigz -p16 -11 *.fastq *.fasta
+tar -cvf ont_read_simulator_benchmarking.tar --owner=0 --group=0 reference.fasta.gz real_reads_training_reads.fastq.gz real_reads_test_reads.fastq.gz badread.fastq.gz longislnd.fastq.gz lrsim.fastq.gz nanosim.fastq.gz pbsim3.fastq.gz simlord.fastq.gz
+```
