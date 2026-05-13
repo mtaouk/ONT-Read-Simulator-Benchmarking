@@ -185,16 +185,36 @@ count_y_scale <- function() {
 }
 
 save_and_crop_figure <- function(filename, plot, height = 160, width = 200) {
+  output_dir <- dirname(filename)
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+
+  saved_with_quartz <- FALSE
   if (capabilities("aqua")) {
-    grDevices::quartz(
-      type = "pdf",
-      file = filename,
-      width = width / 25.4,
-      height = height / 25.4
+    saved_with_quartz <- tryCatch(
+      {
+        grDevices::quartz(
+          type = "pdf",
+          file = filename,
+          width = width / 25.4,
+          height = height / 25.4
+        )
+        print(plot)
+        grDevices::dev.off()
+        TRUE
+      },
+      error = function(error) {
+        if (grDevices::dev.cur() > 1) {
+          grDevices::dev.off()
+        }
+        message("Quartz PDF device failed; falling back to ggsave(): ", conditionMessage(error))
+        FALSE
+      }
     )
-    print(plot)
-    grDevices::dev.off()
-  } else {
+  }
+
+  if (!saved_with_quartz) {
     ggsave(
       filename, plot,
       height = height, width = width,
