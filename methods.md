@@ -212,7 +212,7 @@ Some tools were easy to install just with conda:
 conda create -n mapping minimap2=2.30 samtools=1.22
 conda create -n nanosim nanosim=3.2.3
 conda create -n pbsim3 pbsim3=3.0.5
-conda create -n badread badread=0.4.1
+conda create -n badread badread=0.4.2
 conda create -n simlord simlord=1.0.4
 ```
 
