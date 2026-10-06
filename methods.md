@@ -250,15 +250,136 @@ For each tool, I installed the latest release, with the following exception:
 
 
 
+## Homopolymer modes
+
+This analysis is to try NanoSim and PBSIM3 with different homopolymer settings. Will be used for a supp figure and to inform which settings are used for the main text results.
+
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark
+mkdir homopolymer_test
+```
+
+NanoSim:
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/homopolymer_test
+
+# Loop trying different homopolymer lengths:
+for h in {3..8}; do
+    conda activate nanosim
+    read_analysis.py genome -i ../real_reads/training_reads_shortnames.fastq -rg ../reference.fasta -o training_hp_"$h"/training -t 32 --fastq -hp --min_homopolymer_len "$h"
+    simulator.py genome -rg ../reference.fasta -c training_hp_"$h"/training -o simulation_hp_"$h"/simulation --fastq -hp -k "$h" -x 100 -t 32
+    cat simulation_hp_"$h"/simulation_*.fastq | tr '\t' ' ' | paste - - - - | shuf | tr '\t' '\n' > nanosim_hp_"$h".fastq
+    conda deactivate
+
+    conda activate mapping
+    minimap2 -t 32 -a -x map-ont --eqx --MD ../reference.fasta nanosim_hp_"$h".fastq | samtools view -u -F 0x904 | samtools sort > nanosim_hp_"$h".bam
+    samtools index nanosim_hp_"$h".bam
+    conda deactivate
+
+    conda activate pomoxis
+    assess_homopolymers count -o nanosim_hp_"$h".homopolymers -t 32 nanosim_hp_"$h".bam
+    rm nanosim_hp_"$h".bam*
+    conda deactivate
+done
+
+# Then a run with homopolymer modelling turned off:
+conda activate nanosim
+read_analysis.py genome -i ../real_reads/training_reads_shortnames.fastq -rg ../reference.fasta -o training_hp_off/training -t 32 --fastq
+simulator.py genome -rg ../reference.fasta -c training_hp_off/training -o simulation_hp_off/simulation --fastq -x 100 -t 32
+cat simulation_hp_off/simulation_*.fastq | tr '\t' ' ' | paste - - - - | shuf | tr '\t' '\n' > nanosim_hp_off.fastq
+conda deactivate
+
+conda activate mapping
+minimap2 -t 32 -a -x map-ont --eqx --MD ../reference.fasta nanosim_hp_off.fastq | samtools view -u -F 0x904 | samtools sort > nanosim_hp_off.bam
+samtools index nanosim_hp_off.bam
+conda deactivate
+
+conda activate pomoxis
+assess_homopolymers count -o nanosim_hp_off.homopolymers -t 32 nanosim_hp_off.bam
+rm nanosim_hp_off.bam*
+conda deactivate
+```
+
+The NanoSim runs crashes with h≥6, so I only have results from 3-5.
+
+PBSIM3 has a `--hp-del-bias` option. This has a max value of 10, so I'm testing values 1-10:
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/homopolymer_test
+
+for h in {1..10}; do
+    conda activate pbsim3
+    pbsim --strategy wgs --method sample --sample ../real_reads/training_reads.fastq --genome ../reference.fasta --depth 100 --prefix ont_sample --difference-ratio 400:189:410 --hp-del-bias "$h"
+    zcat ont_sample_*.fq.gz | tr '\t' ' ' | paste - - - - | shuf | tr '\t' '\n' > pbsim3_hp_"$h".fastq
+    rm ont_sample*.fq.gz ont_sample*.maf.gz ont_sample*.ref
+    conda deactivate
+
+    conda activate mapping
+    minimap2 -t 32 -a -x map-ont --eqx --MD ../reference.fasta pbsim3_hp_"$h".fastq | samtools view -u -F 0x904 | samtools sort > pbsim3_hp_"$h".bam
+    samtools index pbsim3_hp_"$h".bam
+    conda deactivate
+
+    conda activate pomoxis
+    assess_homopolymers count -o pbsim3_hp_"$h".homopolymers -t 32 pbsim3_hp_"$h".bam
+    rm pbsim3_hp_"$h".bam*
+    conda deactivate
+done
+```
+
+Gather results in a table:
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/homopolymer_test
+
+{
+    awk -F '\t' 'BEGIN {OFS="\t"} NR == 1 {print "tool", $1, $14, $15}' ../analysis/real.homopolymers/hp_correct_vs_len.txt
+    awk -F '\t' 'BEGIN {OFS="\t"} NR > 1 {print "real", $1, $14, $15}' ../analysis/real.homopolymers/hp_correct_vs_len.txt
+    for r in nanosim_hp_off nanosim_hp_3 nanosim_hp_4 nanosim_hp_5 pbsim3_hp_1 pbsim3_hp_2 pbsim3_hp_3 pbsim3_hp_4 pbsim3_hp_5 pbsim3_hp_6 pbsim3_hp_7 pbsim3_hp_8 pbsim3_hp_9 pbsim3_hp_10; do
+        awk -F'\t' -v OFS='\t' -v r="$r" 'NR > 1 {print r, $1, $14, $15}' "$r".homopolymers/hp_correct_vs_len.txt
+    done
+} > homopolymer_modes.tsv
+```
+
+Count homopolymers in the reference:
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/analysis
+awk -F '\t' '
+    NR > 1 && !seen[$2 SUBSEP $3 SUBSEP $8]++ { counts[$8]++ }
+    END { for (hp_len in counts) printf "%s\t%d\n", hp_len, counts[hp_len] }
+' real.homopolymers/hp_catalogue.txt | sort -k1,1n
+```
+
+Results: 119016 3-mers, 46166 4-mers, 18220 5-mers, 6826 6-mers, 2607 7-mers, 269 8-mers, 22 9-mers, 2 10-mers.
+
+Choose best NanoSim results:
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/homopolymer_test
+for h in off 3 4 5; do
+    printf "nanosim_hp_$h\t"
+    ../scripts/quantify_homopolymer_error.py nanosim_hp_"$h" homopolymer_modes.tsv 119016,46166,18220,6826,2607,269,22,2
+done
+```
+
+NanoSim's homopolymer-modelling-off results were best (which was obvious - I didn't really need this script to tell me that).
+
+Choose best PBSIM3 results:
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/homopolymer_test
+for h in {1..10}; do
+    printf "pbsim3_hp_$h\t"
+    ../scripts/quantify_homopolymer_error.py pbsim3_hp_"$h" homopolymer_modes.tsv 119016,46166,18220,6826,2607,269,22,2
+done
+```
+
+PBSIM3's `--hp-del-bias 5` results were best. Higher values did better for long homopolymers, but there aren't very many long homopolymers.
+
 
 ## Read Simulation
 
-The following is the code I used for each read simulator tool to generate the reads, including installation and any preparation steps.
+The following is the code I used for each read simulator tool to generate the reads.
 
 Whenever I had to combine multiple FASTQs together, I shuffle them like this: `tr '\t' ' ' | paste - - - - | shuf | tr '\t' '\n'`. Ensuring the reads are in a random order makes it easier to take samples of the reads later, e.g. I can take the first 1000 reads and they shouldn't be biased.
 
 
-### Run NanoSim
+### NanoSim
 
 https://github.com/BirolLab/NanoSim
 
@@ -273,8 +394,8 @@ mkdir nanosim
 cd nanosim
 conda activate nanosim
 
-read_analysis.py genome -i ../real_reads/training_reads_shortnames.fastq -rg ../reference.fasta -o training/training -t 32 --fastq -hp
-simulator.py genome -rg ../reference.fasta -c training/training -o simulation/simulation --fastq -hp -k 5 -x 100 -t 32
+read_analysis.py genome -i ../real_reads/training_reads_shortnames.fastq -rg ../reference.fasta -o training/training -t 32 --fastq
+simulator.py genome -rg ../reference.fasta -c training/training -o simulation/simulation --fastq -x 100 -t 32
 cat simulation/simulation_*.fastq | tr '\t' ' ' | paste - - - - | shuf | tr '\t' '\n' > nanosim.fastq
 ```
 
@@ -327,7 +448,7 @@ mkdir pbsim3
 cd pbsim3
 conda activate pbsim3
 
-pbsim --strategy wgs --method sample --sample ../real_reads/training_reads.fastq --genome ../reference.fasta --depth 100 --prefix ont_sample --difference-ratio 400:189:410
+pbsim --strategy wgs --method sample --sample ../real_reads/training_reads.fastq --genome ../reference.fasta --depth 100 --prefix ont_sample --difference-ratio 400:189:410 --hp-del-bias 5
 zcat *.fq.gz | tr '\t' ' ' | paste - - - - | shuf | tr '\t' '\n' > pbsim3.fastq
 ```
 
@@ -507,7 +628,6 @@ for r in real badread longislnd lrsim nanosim pbsim3 simlord; do
     python3 ../scripts/count_3mer_subs.py "$r".fastq ../reference.fasta "$r".paf > "$r".3mer_subs
 done
 ```
-
 
 
 

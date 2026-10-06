@@ -92,7 +92,7 @@ Simulated reads were generated from a complete, closed assembly of the same \tex
 
 
 \subsection{Simulator configuration}
-Each simulator was configured to maximise the realism of generated reads. For simulators with explicit training or model-building steps (Badread, LongISLND, lrsim and NanoSim), models were built from the real read training set, using alignments to the reference genome where required. PBSIM3 was run in its sampling mode, using real training reads as the source of read lengths and FASTQ quality strings, and SimLoRD was configured to sample read lengths from the training reads. For options controlling overall error rate, error variability or error-type ratios, we used values estimated from the training reads. All tools were set to generate read sets of 100$\times$ depth ($\sim$300 Mbp). Exact commands are documented in Supplementary Methods (methods.md) and are publicly available in the \href{https://github.com/mtaouk/ONT-Read-Simulator-Benchmarking}{accompanying GitHub repository}.
+Each simulator was configured to maximise the realism of generated reads. For simulators with explicit training or model-building steps (Badread, LongISLND, lrsim and NanoSim), models were built from the real read training set, using alignments to the reference genome where required. PBSIM3 was run in its sampling mode, using real training reads as the source of read lengths and FASTQ quality strings, and SimLoRD was configured to sample read lengths from the training reads. For options controlling overall error rate, error variability or error-type ratios, we used values estimated from the training reads. For NanoSim and PBSIM3, we tested various homopolymer modelling options (Figures \ref{fig:supp_nanosim_homopolymers} and \ref{fig:supp_pbsim3_homopolymers}) and used the settings which best matched the real reads: disabled homopolymer length simulation in NanoSim, and \texttt{-{}-hp-del-bias 10} in PBSIM3. All tools were set to generate read sets of 100$\times$ depth ($\sim$300 Mbp). Exact commands are documented in Supplementary Methods (methods.md) and are publicly available in the \href{https://github.com/mtaouk/ONT-Read-Simulator-Benchmarking}{accompanying GitHub repository}.
 
 
 \subsection{Evaluation metrics}
@@ -285,7 +285,6 @@ R.R.W. conceived the study. M.L.T. and R.R.W. performed analyses and drafted the
 
 
 
-\clearpage
 \bibliographystyle{custom_unsrt}
 \bibliography{references}
 
@@ -355,6 +354,26 @@ SimLoRD    & 53,202 & 299,722,584 &  5 & 369,970 & 5,633.7 &  8,995 \\
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.8\textwidth]{figure_s1.pdf}
+\caption[NanoSim homopolymer modes]{\textbf{NanoSim homopolymer modes.} To test NanoSim's homopolymer-length modelling, we ran NanoSim's read modelling step (\texttt{read\_analysis.py genome}) using \texttt{-hp -{}-min\_homopolymer\_len} \textit{h} and NanoSim read simulation (\texttt{simulator.py genome}) using \texttt{-hp -k} \textit{h}. We tested values of \textit{h} ranging from 3--5 (values of 6 or greater caused NanoSim to crash), as well as no homopolymer modelling. Despite intending to improve the realism of homopolymer-length errors, this modelling produced unrealistically low error rates at homopolymers at and above the value of \textit{h}. For the main results in this manuscript, we therefore did not use NanoSim's homopolymer length modelling.}
+\label{fig:supp_nanosim_homopolymers}
+\end{figure}
+
+
+
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{figure_s2.pdf}
+\caption[PBSIM3 homopolymer modes]{\textbf{PBSIM3 homopolymer modes.} PBSIM3 contains a \texttt{-{}-hp-del-bias} option which aims to simulate homopolymer deletion bias in ONT reads. To test this, we ran PBSIM3 using \texttt{-{}-hp-del-bias} \textit{h} using values of \textit{h} ranging from 1--10 (the full range for this option). While higher values of \textit{h} did produce more errors in longer homopolymers, it did not reproduce the inflection of the curve seen with the real reads. For the main results in this manuscript, we used \texttt{-{}-hp-del-bias 5} since that minimised the discrepancy between the real read's homopolymer errors and PBSIM3's homopolymer errors (weighting the discrepancy using homopolymer occurrences).}
+\label{fig:supp_pbsim3_homopolymers}
+\end{figure}
+
+
+
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.69\textwidth]{figure_s3.pdf}
 \caption[Read length distributions]{\textbf{Read length distributions.} Histograms are shown for the real and simulated datasets. The x-axis shows read length in 1 kbp bins. Histogram bars are weighted by read length, so the y-axis represents the total number of bases contributed by reads in each length bin rather than the number of reads. A simulator is more realistic if its histogram closely matches that of the real reads.}
 \label{fig:supp_read_length}
 \end{figure}
@@ -364,7 +383,7 @@ SimLoRD    & 53,202 & 299,722,584 &  5 & 369,970 & 5,633.7 &  8,995 \\
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.72\textwidth]{figure_s2.pdf}
+\includegraphics[width=0.69\textwidth]{figure_s4.pdf}
 \caption[Correct base Q-score distribution]{\textbf{Correct base Q-score distribution.} Reported base Q-score distributions for correctly called bases in the real and simulated datasets. In each panel, bars show the number of bases in each reported base Q-score bin. A base was counted as correct only if it matched the reference and was not adjacent to a deletion in the alignment. A simulator is more realistic if its histogram closely matches that of the real reads.}
 \label{fig:supp_qscore_correct_bases}
 \end{figure}
@@ -374,7 +393,7 @@ SimLoRD    & 53,202 & 299,722,584 &  5 & 369,970 & 5,633.7 &  8,995 \\
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.72\textwidth]{figure_s3.pdf}
+\includegraphics[width=0.69\textwidth]{figure_s5.pdf}
 \caption[Error-associated base Q-score distribution]{\textbf{Error-associated base Q-score distribution.} Reported base Q-score distributions for error-associated bases in the real and simulated datasets. In each panel, bars show the number of error-associated bases in each reported base Q-score bin. Error-associated bases were defined as mismatches and insertions, plus deletion-associated events estimated as half the number of matched bases adjacent to deletions, because deleted bases themselves have no reported Q-score. A simulator is more realistic if its histogram closely matches that of the real reads.}
 \label{fig:supp_qscore_incorrect_bases}
 \end{figure}
@@ -384,7 +403,7 @@ SimLoRD    & 53,202 & 299,722,584 &  5 & 369,970 & 5,633.7 &  8,995 \\
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.72\textwidth]{figure_s4.pdf}
+\includegraphics[width=0.69\textwidth]{figure_s6.pdf}
 \caption[Q-score calibration curve]{\textbf{Q-score calibration curve.} Per-base Q-score calibration for real and simulated datasets. Each point represents one reported base Q-score bin (x-axis), and its y-value is the empirical base Q-score calculated from the observed error rate among bases with that reported Q-score. Empirical error rate was defined as the fraction of bases in the bin that were mismatches or insertions, plus deletion-associated events estimated as half the count of matched bases adjacent to deletions. The dashed diagonal indicates perfect calibration, where reported and empirical base Q-scores are equal.}
 \label{fig:supp_qscore_calibration}
 \end{figure}

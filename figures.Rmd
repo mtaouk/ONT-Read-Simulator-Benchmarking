@@ -759,7 +759,129 @@ per_base_real <- per_base %>% filter(tool == "Real reads")
 ```
 
 
-```{r figure_s1}
+
+
+
+```{r homopolymer_modes}
+homopolymer_modes_data <- read_tsv(
+  "results/homopolymer_modes.tsv", show_col_types = FALSE
+) %>%
+  filter(rlen <= 9) %>%
+  mutate(
+    error_rate = 1 - ATGC,
+    simulator = case_when(
+      tool == "real" ~ "Real reads",
+      str_starts(tool, "nanosim_hp_") ~ "NanoSim",
+      str_starts(tool, "pbsim3_hp_") ~ "PBSIM3"
+    ),
+    setting = as.numeric(str_extract(tool, "[0-9]+$")),
+    title = case_when(
+      tool == "real" ~ "Real reads",
+      tool == "nanosim_hp_off" ~ "NanoSim: homopolymer modelling off",
+      simulator == "NanoSim" ~ paste0("NanoSim: --min_homopolymer_len ", setting),
+      tool == "pbsim3_hp_1" ~ "PBSIM3: --hp-del-bias 1 (default)",
+      simulator == "PBSIM3" ~ paste0("PBSIM3: --hp-del-bias ", setting)
+    )
+  ) %>%
+  arrange(match(simulator, c("Real reads", "NanoSim", "PBSIM3")),
+          coalesce(setting, 0), rlen)
+
+# Match the colours, outlines and point shapes in Figure 3.
+homopolymer_mode_styles <- tribble(
+  ~simulator,   ~colour,           ~outline,       ~starshape,
+  "Real reads", real_reads_colour, real_reads_dark, 15,
+  "NanoSim",    nanosim_colour,    nanosim_dark,    23,
+  "PBSIM3",     pbsim3_colour,     pbsim3_dark,      5
+)
+
+# Panel metadata are ordered as real reads, NanoSim off/thresholds, then PBSIM3 biases.
+homopolymer_mode_panels <- homopolymer_modes_data %>%
+  distinct(tool, simulator, title) %>%
+  left_join(homopolymer_mode_styles, by = "simulator")
+
+homopolymer_mode_x_limits <- c(min(homopolymer_modes_data$rlen), 9)
+homopolymer_mode_y_max <- 0.4
+
+make_homopolymer_mode_plot <- function(tool, simulator, title, colour, outline, starshape) {
+  panel_data <- homopolymer_modes_data %>% filter(.data$tool == .env$tool)
+
+  ggplot(panel_data, aes(x = rlen, y = error_rate)) +
+    geom_line(colour = colour, linewidth = 0.4) +
+    ggstar::geom_star(
+      starshape = starshape, fill = colour, colour = outline,
+      size = 2.5, starstroke = 0.4
+    ) +
+    scale_x_continuous(
+      limits = homopolymer_mode_x_limits,
+      breaks = seq(homopolymer_mode_x_limits[1], homopolymer_mode_x_limits[2]),
+      minor_breaks = NULL
+    ) +
+    scale_y_continuous(
+      limits = c(0, homopolymer_mode_y_max),
+      breaks = seq(0, homopolymer_mode_y_max, 0.1),
+      expand = c(0, 0), labels = label_percent(accuracy = 1.0)
+    ) +
+    labs(
+      x = if (tool == "real") "Homopolymer length" else NULL,
+      y = if (tool == "real") "Error rate" else NULL,
+      title = title
+    ) +
+    scatter_panel_theme +
+    coloured_title_theme(outline) +
+    theme(legend.position = "none", plot.margin = margin(5.5, 8, 5.5, 5.5))
+}
+
+make_homopolymer_mode_grid <- function(plots) {
+  # The first plot is real reads; keep it one panel high in its own column.
+  simulator_plots <- plots[-1]
+  simulator_rows <- ceiling(length(simulator_plots) / 2)
+  real_column <- ggdraw() + draw_plot(
+    plots[[1]], y = (1 - 1 / simulator_rows) / 2,
+    height = 1 / simulator_rows
+  )
+  simulator_grid <- plot_grid(
+    plotlist = simulator_plots, ncol = 2, align = "hv", axis = "tblr"
+  )
+  plot_grid(real_column, simulator_grid, ncol = 2, rel_widths = c(1, 2))
+}
+```
+
+```{r figure_s1, fig.width=9.45, fig.height=5.12}
+nanosim_homopolymer_plots <- homopolymer_mode_panels %>%
+  filter(simulator %in% c("Real reads", "NanoSim")) %>%
+  pmap(make_homopolymer_mode_plot)
+
+figure_s1 <- make_homopolymer_mode_grid(nanosim_homopolymer_plots)
+
+save_and_crop_figure(
+  "figures/figure_s1.pdf", figure_s1,
+  height = 130, width = 250
+)
+
+figure_s1
+```
+
+```{r figure_s2, fig.width=9.45, fig.height=12.80}
+pbsim3_homopolymer_plots <- homopolymer_mode_panels %>%
+  filter(simulator %in% c("Real reads", "PBSIM3")) %>%
+  pmap(make_homopolymer_mode_plot)
+
+figure_s2 <- make_homopolymer_mode_grid(pbsim3_homopolymer_plots)
+
+save_and_crop_figure(
+  "figures/figure_s2.pdf", figure_s2,
+  height = 325, width = 250
+)
+
+figure_s2
+```
+
+
+
+
+
+
+```{r figure_s3}
 plot_real <- ggplot(df_Real_reads, aes(x = read_length)) +
   geom_histogram(aes(weight = read_length), binwidth = 1000, position = "identity", fill = real_reads_colour, colour = real_reads_colour, linewidth = 0.02) +
   read_length_x_scale() +
@@ -816,7 +938,7 @@ plot_SimLoRD <- ggplot(df_SimLoRD, aes(x = read_length)) +
   histogram_panel_theme +
   coloured_title_theme(simlord_dark)
 
-figure_s1 <- plot_grid(
+figure_s3 <- plot_grid(
   plotlist = list(
     NULL, plot_Badread, plot_LongISLND,
     plot_real, plot_lrsim, plot_NanoSim,
@@ -825,12 +947,12 @@ figure_s1 <- plot_grid(
   ncol = 3, align = "h", axis = "b"
 )
 
-save_and_crop_figure("figures/figure_s1.pdf", figure_s1, height = 160, width = 200)
+save_and_crop_figure("figures/figure_s3.pdf", figure_s3, height = 160, width = 200)
 
-figure_s1
+figure_s3
 ```
 
-```{r figure_s2}
+```{r figure_s4}
 per_base_count_plot <- function(data, y_column, colour, title, title_colour, x_label = "", y_label = "", plot_theme) {
   ggplot(data, aes(x = qscore, y = .data[[y_column]])) +
     geom_col(fill = colour, colour = colour, width = 1, linewidth = 0.02) +
@@ -901,7 +1023,7 @@ p_simlord_correct <- per_base_count_plot(
   plot_theme = histogram_panel_theme
 )
 
-figure_s2 <- plot_grid(
+figure_s4 <- plot_grid(
   plotlist = list(
     NULL, p_badread_correct, p_longislnd_correct,
     p_real_correct, p_lrsim_correct, p_nanosim_correct,
@@ -910,12 +1032,12 @@ figure_s2 <- plot_grid(
   ncol = 3, align = "h", axis = "b"
 )
 
-save_and_crop_figure("figures/figure_s2.pdf", figure_s2, height = 160, width = 200)
+save_and_crop_figure("figures/figure_s4.pdf", figure_s4, height = 160, width = 200)
 
-figure_s2
+figure_s4
 ```
 
-```{r figure_s3}
+```{r figure_s5}
 p_real_error <- per_base_count_plot(
   data = per_base_real,
   y_column = "all_errors",
@@ -976,7 +1098,7 @@ p_simlord_error <- per_base_count_plot(
   plot_theme = histogram_panel_theme
 )
 
-figure_s3 <- plot_grid(
+figure_s5 <- plot_grid(
   plotlist = list(
     NULL, p_badread_error, p_longislnd_error,
     p_real_error, p_lrsim_error, p_nanosim_error,
@@ -985,12 +1107,12 @@ figure_s3 <- plot_grid(
   ncol = 3, align = "h", axis = "b"
 )
 
-save_and_crop_figure("figures/figure_s3.pdf", figure_s3, height = 160, width = 200)
+save_and_crop_figure("figures/figure_s5.pdf", figure_s5, height = 160, width = 200)
 
-figure_s3
+figure_s5
 ```
 
-```{r figure_s4}
+```{r figure_s6}
 per_base_calibration_plot <- function(data, colour, title, title_colour, x_label = "", y_label = "", plot_theme) {
   ggplot(data, aes(x = qscore, y = error_qscore)) +
     geom_segment(
@@ -1066,7 +1188,7 @@ p_real_cal <- enlarge_infinity_tick(p_real_cal, "y")
 p_pbsim3_cal <- enlarge_infinity_tick(p_pbsim3_cal, "y")
 p_simlord_cal <- enlarge_infinity_tick(p_simlord_cal, "y")
 
-figure_s4 <- plot_grid(
+figure_s6 <- plot_grid(
   plotlist = list(
     NULL, p_badread_cal, p_longislnd_cal,
     p_real_cal, p_lrsim_cal, p_nanosim_cal,
@@ -1075,9 +1197,9 @@ figure_s4 <- plot_grid(
   ncol = 3, align = "hv", axis = "tblr"
 )
 
-save_and_crop_figure("figures/figure_s4.pdf", figure_s4, height = 170, width = 200)
+save_and_crop_figure("figures/figure_s6.pdf", figure_s6, height = 170, width = 200)
 
-figure_s4
+figure_s6
 ```
 
 
@@ -1367,117 +1489,3 @@ reported_vs_length
 ```
 
 
-
-```{r homopolymer_modes}
-homopolymer_modes_data <- read_tsv(
-  "results/homopolymer_modes.tsv", show_col_types = FALSE
-) %>%
-  filter(rlen <= 9) %>%
-  mutate(
-    error_rate = 1 - ATGC,
-    simulator = case_when(
-      tool == "real" ~ "Real reads",
-      str_starts(tool, "nanosim_hp_") ~ "NanoSim",
-      str_starts(tool, "pbsim3_hp_") ~ "PBSIM3"
-    ),
-    setting = as.numeric(str_extract(tool, "[0-9]+$")),
-    title = case_when(
-      tool == "real" ~ "Real reads",
-      tool == "nanosim_hp_off" ~ "NanoSim: modelling off",
-      simulator == "NanoSim" ~ paste0("NanoSim: minimum ", setting, " bp"),
-      tool == "pbsim3_hp_1" ~ "PBSIM3: bias = 1 (off)",
-      simulator == "PBSIM3" ~ paste0("PBSIM3: bias = ", setting)
-    )
-  ) %>%
-  arrange(match(simulator, c("Real reads", "NanoSim", "PBSIM3")),
-          coalesce(setting, 0), rlen)
-
-# Match the colours, outlines and point shapes in Figure 3.
-homopolymer_mode_styles <- tribble(
-  ~simulator,   ~colour,           ~outline,       ~starshape,
-  "Real reads", real_reads_colour, real_reads_dark, 15,
-  "NanoSim",    nanosim_colour,    nanosim_dark,    23,
-  "PBSIM3",     pbsim3_colour,     pbsim3_dark,      5
-)
-
-# Panel metadata are ordered as real reads, NanoSim off/thresholds, then PBSIM3 biases.
-homopolymer_mode_panels <- homopolymer_modes_data %>%
-  distinct(tool, simulator, title) %>%
-  left_join(homopolymer_mode_styles, by = "simulator")
-
-homopolymer_mode_x_limits <- c(min(homopolymer_modes_data$rlen), 9)
-homopolymer_mode_y_max <- 0.4
-
-make_homopolymer_mode_plot <- function(tool, simulator, title, colour, outline, starshape) {
-  panel_data <- homopolymer_modes_data %>% filter(.data$tool == .env$tool)
-
-  ggplot(panel_data, aes(x = rlen, y = error_rate)) +
-    geom_line(colour = colour, linewidth = 0.4) +
-    ggstar::geom_star(
-      starshape = starshape, fill = colour, colour = outline,
-      size = 2.5, starstroke = 0.4
-    ) +
-    scale_x_continuous(
-      limits = homopolymer_mode_x_limits,
-      breaks = seq(homopolymer_mode_x_limits[1], homopolymer_mode_x_limits[2]),
-      minor_breaks = NULL
-    ) +
-    scale_y_continuous(
-      limits = c(0, homopolymer_mode_y_max),
-      breaks = seq(0, homopolymer_mode_y_max, 0.1),
-      expand = c(0, 0), labels = label_percent(accuracy = 1.0)
-    ) +
-    labs(
-      x = if (tool == "real") "Homopolymer length" else NULL,
-      y = if (tool == "real") "Error rate" else NULL,
-      title = title
-    ) +
-    scatter_panel_theme +
-    coloured_title_theme(outline) +
-    theme(legend.position = "none", plot.margin = margin(5.5, 8, 5.5, 5.5))
-}
-
-make_homopolymer_mode_grid <- function(plots) {
-  # The first plot is real reads; keep it one panel high in its own column.
-  simulator_plots <- plots[-1]
-  simulator_rows <- ceiling(length(simulator_plots) / 2)
-  real_column <- ggdraw() + draw_plot(
-    plots[[1]], y = (1 - 1 / simulator_rows) / 2,
-    height = 1 / simulator_rows
-  )
-  simulator_grid <- plot_grid(
-    plotlist = simulator_plots, ncol = 2, align = "hv", axis = "tblr"
-  )
-  plot_grid(real_column, simulator_grid, ncol = 2, rel_widths = c(1, 2))
-}
-```
-
-```{r nanosim_homopolymer_modes, fig.width=9.45, fig.height=5.12}
-nanosim_homopolymer_plots <- homopolymer_mode_panels %>%
-  filter(simulator %in% c("Real reads", "NanoSim")) %>%
-  pmap(make_homopolymer_mode_plot)
-
-nanosim_homopolymer_modes <- make_homopolymer_mode_grid(nanosim_homopolymer_plots)
-
-save_and_crop_figure(
-  "figures/nanosim_homopolymer_modes.pdf", nanosim_homopolymer_modes,
-  height = 130, width = 240
-)
-
-nanosim_homopolymer_modes
-```
-
-```{r pbsim3_homopolymer_modes, fig.width=9.45, fig.height=12.80}
-pbsim3_homopolymer_plots <- homopolymer_mode_panels %>%
-  filter(simulator %in% c("Real reads", "PBSIM3")) %>%
-  pmap(make_homopolymer_mode_plot)
-
-pbsim3_homopolymer_modes <- make_homopolymer_mode_grid(pbsim3_homopolymer_plots)
-
-save_and_crop_figure(
-  "figures/pbsim3_homopolymer_modes.pdf", pbsim3_homopolymer_modes,
-  height = 325, width = 240
-)
-
-pbsim3_homopolymer_modes
-```
