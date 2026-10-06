@@ -386,7 +386,7 @@ https://github.com/BirolLab/NanoSim
 * `-hp` enables homopolymer length simulation.
 * `-k 5` sets the minimum homopolymer length where expansion/contraction will be applied. Chosen because the help text says 'a typical k is 5'
 * `-x 100` to get 100x read depth.
-* `-t 32` is the thread count.
+* `-t 16` is the thread count.
 
 ```bash
 cd ~/2025-08_ONT_read_simulator_benchmark
@@ -394,8 +394,12 @@ mkdir nanosim
 cd nanosim
 conda activate nanosim
 
-read_analysis.py genome -i ../real_reads/training_reads_shortnames.fastq -rg ../reference.fasta -o training/training -t 32 --fastq
-simulator.py genome -rg ../reference.fasta -c training/training -o simulation/simulation --fastq -x 100 -t 32
+# Training
+/usr/bin/time -v -o nanosim_training.time read_analysis.py genome -i ../real_reads/training_reads_shortnames.fastq -rg ../reference.fasta -o training/training -t 16 --fastq
+
+# Simulation
+/usr/bin/time -v -o nanosim_simulation.time simulator.py genome -rg ../reference.fasta -c training/training -o simulation/simulation --fastq -x 100 -t 16
+
 cat simulation/simulation_*.fastq | tr '\t' ' ' | paste - - - - | shuf | tr '\t' '\n' > nanosim.fastq
 ```
 
@@ -411,15 +415,22 @@ Parameters:
 cd ~/2025-08_ONT_read_simulator_benchmark
 mkdir longislnd
 cd longislnd
-
-conda activate mapping
 cp ../real_reads/training_reads.fastq .
-minimap2 -a -x map-ont -t 32 ../reference.fasta training_reads.fastq | samtools sort > training_reads.fastq.bam
-samtools index training_reads.fastq.bam
 
+# Training
+/usr/bin/time -v -o longislnd_training.time bash -e -o pipefail <<'BASH'
+    source "$HOME/miniconda3/etc/profile.d/conda.sh"
+    conda activate mapping
+    minimap2 -a -x map-ont -t 16 ../reference.fasta training_reads.fastq | samtools sort -@ 16 > training_reads.fastq.bam
+    samtools index training_reads.fastq.bam
+    conda activate longislnd
+    sample.py --input_suffix fastq.bam --read_type fastq --model_dir longislnd_model --reference ../reference.fasta
+BASH
+
+# Simulation
 conda activate longislnd
-sample.py --input_suffix fastq.bam --read_type fastq --model_dir longislnd_model --reference ../reference.fasta
-simulate.py --movie_id ONT --read_type fastq --model_dir longislnd_model --fasta ../reference.fasta --coverage 100
+/usr/bin/time -v -o longislnd_simulation.time simulate.py --movie_id ONT --read_type fastq --model_dir longislnd_model --fasta ../reference.fasta --coverage 100
+
 cat out/*.fq | tr '\t' ' ' | paste - - - - | shuf | tr '\t' '\n' > longislnd.fastq
 rm -r out training_reads*  # clean up
 ```
@@ -448,7 +459,9 @@ mkdir pbsim3
 cd pbsim3
 conda activate pbsim3
 
-pbsim --strategy wgs --method sample --sample ../real_reads/training_reads.fastq --genome ../reference.fasta --depth 100 --prefix ont_sample --difference-ratio 400:189:410 --hp-del-bias 5
+# Simulation (no separate training step)
+/usr/bin/time -v -o pbsim3.time pbsim --strategy wgs --method sample --sample ../real_reads/training_reads.fastq --genome ../reference.fasta --depth 100 --prefix ont_sample --difference-ratio 400:189:410 --hp-del-bias 5
+
 zcat *.fq.gz | tr '\t' ' ' | paste - - - - | shuf | tr '\t' '\n' > pbsim3.fastq
 ```
 
@@ -467,13 +480,19 @@ cd ~/2025-08_ONT_read_simulator_benchmark
 mkdir badread
 cd badread
 
-conda activate mapping
-minimap2 -x map-ont -c ../reference.fasta ../real_reads/training_reads.fastq -t 32 > training_reads.paf
+# Training
+/usr/bin/time -v -o badread_training.time bash -e -o pipefail <<'BASH'
+    source "$HOME/miniconda3/etc/profile.d/conda.sh"
+    conda activate mapping
+    minimap2 -x map-ont -c ../reference.fasta ../real_reads/training_reads.fastq -t 16 > training_reads.paf
+    conda activate badread
+    badread error_model --reads ../real_reads/training_reads.fastq --reference ../reference.fasta --alignment training_reads.paf > error_model
+    badread qscore_model --reads ../real_reads/training_reads.fastq --reference ../reference.fasta --alignment training_reads.paf > qscore_model
+BASH
 
+# Simulation
 conda activate badread
-badread error_model --reads ../real_reads/training_reads.fastq --reference ../reference.fasta --alignment training_reads.paf > error_model
-badread qscore_model --reads ../real_reads/training_reads.fastq --reference ../reference.fasta --alignment training_reads.paf > qscore_model
-badread simulate --reference ../reference.fasta --error_model error_model --qscore_model qscore_model --quantity 100x --length 5587,6402 --identity 19.22,6.23 > badread.fastq
+/usr/bin/time -v -o badread_simulation.time badread simulate --reference ../reference.fasta --error_model error_model --qscore_model qscore_model --quantity 100x --length 5587,6402 --identity 19.22,6.23 > badread.fastq
 ```
 
 
@@ -493,13 +512,19 @@ cd ~/2025-08_ONT_read_simulator_benchmark
 mkdir lrsim
 cd lrsim
 
+# Training
+/usr/bin/time -v -o lrsim_training.time bash -e -o pipefail <<'BASH'
+    source "$HOME/miniconda3/etc/profile.d/conda.sh"
+    conda activate mapping
+    minimap2 -a -x map-ont -t 16 ../reference.fasta ../real_reads/training_reads.fastq | samtools view -u -F 0x904 | samtools sort -@ 16 > training_reads.bam
+    samtools index training_reads.bam
+    conda activate lrsim
+    samtools stats training_reads.bam | extractModel.py > training.lrsm
+BASH
+
+# Simulation
 conda activate lrsim
-
-minimap2 -a -x map-ont -t 32 ../reference.fasta ../real_reads/training_reads.fastq | samtools view -u -F 0x904 | samtools sort > training_reads.bam
-samtools index training_reads.bam
-samtools stats training_reads.bam | extractModel.py > training.lrsm
-
-lrsim -t 32 -m training.lrsm -d 100 --error=0.03313 --rvarianceratio 1.648 --eratio 100:217:212 --nolengthfloat ../reference.fasta > lrsim.fastq
+/usr/bin/time -v -o lrsim_simulation.time lrsim -t 16 -m training.lrsm -d 100 --error=0.03313 --rvarianceratio 1.648 --eratio 100:217:212 --nolengthfloat ../reference.fasta > lrsim.fastq
 ```
 
 
@@ -521,9 +546,9 @@ cd ~/2025-08_ONT_read_simulator_benchmark
 mkdir simlord
 cd simlord
 
+# Simulation (no separate training step)
 conda activate simlord
-
-simlord --read-reference ../reference.fasta --coverage 100 --sample-readlength-from-fastq ../real_reads/training_reads.fastq --prob-sub 0.0133 --prob-ins 0.00626 --prob-del 0.0136 --max-passes 1 --norm-params -0.1 0.8 --no-sam simlord
+/usr/bin/time -v -o simlord.time simlord --read-reference ../reference.fasta --coverage 100 --sample-readlength-from-fastq ../real_reads/training_reads.fastq --prob-sub 0.0133 --prob-ins 0.00626 --prob-del 0.0136 --max-passes 1 --norm-params -0.1 0.8 --no-sam simlord
 ```
 
 
