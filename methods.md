@@ -403,6 +403,8 @@ conda activate nanosim
 cat simulation/simulation_*.fastq | tr '\t' ' ' | paste - - - - | shuf | tr '\t' '\n' > nanosim.fastq
 ```
 
+Interesting note: when I run NanoSim without homopolymer modelling, some reads had very low empirical qscores (visible as a spur on the distribution in Figure 1). I traced this to reads with very large deletions, and since I'm using "BLAST identity" (https://lh3.github.io/2018/11/25/on-the-definition-of-sequence-identity) to get the reported qscore, a large deletion has a very big effect. Interestingly, this was not the case when I did use homopolymer modelling, and the reason seems to be that when doing homopolymer modelling NanoSim, will remove any deletion that contains a homopolymer, and since that's the case for most large deletions, they all get removed.
+
 
 ### LongISLND
 
@@ -578,11 +580,11 @@ seqkit stats -a *.fastq
 
 Per-read analysis:
 ```bash
-conda activate mapping
-
 cd ~/2025-08_ONT_read_simulator_benchmark/analysis
 for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
+    conda activate mapping
     minimap2 -t 32 -c --eqx ../reference.fasta "$r".fastq | grep "tp:A:P" > "$r".paf
+    conda deactivate
     python3 ../scripts/extract_read_stats.py "$r".fastq "$r".paf > "$r".tsv
 done
 
@@ -603,6 +605,7 @@ for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
     python3 ../scripts/per_base_qscores.py "$r".fastq ../reference.fasta "$r".paf > "$r".qscore_counts.tsv
 done
 ```
+
 
 
 

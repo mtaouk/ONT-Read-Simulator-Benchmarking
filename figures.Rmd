@@ -279,9 +279,12 @@ weighted_histogram_geom <- function(histogram_rects, fill_colour) {
   )
 }
 
-weighted_histogram_layer <- function(data, x_column, fill_colour, binwidth = 0.5) {
+weighted_histogram_layer <- function(
+  data, x_column, fill_colour, binwidth = 0.5,
+  weight_column = "read_length"
+) {
   weighted_histogram_geom(
-    weighted_histogram_rects(data, x_column, binwidth = binwidth),
+    weighted_histogram_rects(data, x_column, binwidth = binwidth, weight_column = weight_column),
     fill_colour
   )
 }
@@ -313,8 +316,10 @@ make_read_qscore_joint_panel <- function(
   x_label = "", y_label = ""
 ) {
   panel_data <- data %>%
-    filter(is.finite(empirical_qscore))
-  top_histogram_data <- weighted_histogram_rects(panel_data, "reported_qscore")
+    filter(is.finite(empirical_qscore), is.finite(reported_qscore_aligned_region))
+  top_histogram_data <- weighted_histogram_rects(
+    panel_data, "reported_qscore_aligned_region", weight_column = "aligned_length"
+  )
 
   top_histogram <- ggplot() +
     weighted_histogram_geom(top_histogram_data, histogram_colour) +
@@ -323,7 +328,7 @@ make_read_qscore_joint_panel <- function(
     labs(x = "", y = "", title = title) +
     top_marginal_theme
 
-  scatter <- ggplot(panel_data, aes(x = reported_qscore, y = empirical_qscore)) +
+  scatter <- ggplot(panel_data, aes(x = reported_qscore_aligned_region, y = empirical_qscore)) +
     reference_line() +
     point_layer(scatter_colour) +
     joint_panel_title(title, title_colour, 40.0) +
@@ -335,7 +340,9 @@ make_read_qscore_joint_panel <- function(
   scatter_grob <- enlarge_infinity_tick(scatter, "y")
 
   right_histogram <- ggplot() +
-    weighted_histogram_layer(panel_data, "empirical_qscore", histogram_colour) +
+    weighted_histogram_layer(
+      panel_data, "empirical_qscore", histogram_colour, weight_column = "aligned_length"
+    ) +
     empirical_read_qscore_x_scale() +
     count_y_scale() +
     coord_flip() +
@@ -1390,7 +1397,7 @@ empirical_vs_length
 ```{r reported_vs_length}
 plot_real <- make_read_length_qscore_joint_panel(
   data = df_Real_reads,
-  qscore_column = "reported_qscore",
+  qscore_column = "reported_qscore_whole_read",
   histogram_colour = real_reads_colour,
   scatter_colour = real_reads_dark,
   title = "Real reads",
@@ -1404,7 +1411,7 @@ plot_real <- make_read_length_qscore_joint_panel(
 
 plot_Badread <- make_read_length_qscore_joint_panel(
   data = df_Badread,
-  qscore_column = "reported_qscore",
+  qscore_column = "reported_qscore_whole_read",
   histogram_colour = badread_colour,
   scatter_colour = badread_dark,
   title = "Badread",
@@ -1416,7 +1423,7 @@ plot_Badread <- make_read_length_qscore_joint_panel(
 
 plot_LongISLND <- make_read_length_qscore_joint_panel(
   data = df_LongISLND,
-  qscore_column = "reported_qscore",
+  qscore_column = "reported_qscore_whole_read",
   histogram_colour = longislnd_colour,
   scatter_colour = longislnd_dark,
   title = "LongISLND",
@@ -1428,7 +1435,7 @@ plot_LongISLND <- make_read_length_qscore_joint_panel(
 
 plot_lrsim <- make_read_length_qscore_joint_panel(
   data = df_lrsim,
-  qscore_column = "reported_qscore",
+  qscore_column = "reported_qscore_whole_read",
   histogram_colour = lrsim_colour,
   scatter_colour = lrsim_dark,
   title = "lrsim",
@@ -1440,7 +1447,7 @@ plot_lrsim <- make_read_length_qscore_joint_panel(
 
 plot_NanoSim <- make_read_length_qscore_joint_panel(
   data = df_NanoSim,
-  qscore_column = "reported_qscore",
+  qscore_column = "reported_qscore_whole_read",
   histogram_colour = nanosim_colour,
   scatter_colour = nanosim_dark,
   title = "NanoSim",
@@ -1452,7 +1459,7 @@ plot_NanoSim <- make_read_length_qscore_joint_panel(
 
 plot_PBSIM3 <- make_read_length_qscore_joint_panel(
   data = df_PBSIM3,
-  qscore_column = "reported_qscore",
+  qscore_column = "reported_qscore_whole_read",
   histogram_colour = pbsim3_colour,
   scatter_colour = pbsim3_dark,
   title = "PBSIM3",
@@ -1464,7 +1471,7 @@ plot_PBSIM3 <- make_read_length_qscore_joint_panel(
 
 plot_SimLoRD <- make_read_length_qscore_joint_panel(
   data = df_SimLoRD,
-  qscore_column = "reported_qscore",
+  qscore_column = "reported_qscore_whole_read",
   histogram_colour = simlord_colour,
   scatter_colour = simlord_dark,
   title = "SimLoRD",

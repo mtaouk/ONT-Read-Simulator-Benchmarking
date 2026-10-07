@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 
-import gzip
 import csv
+import gzip
 import math
 import os
 import re
 import sys
 
-import pandas as pd
 from Bio import SeqIO
 
-csv.field_size_limit(10**7)  # 10 million chars
 
-if len(sys.argv) != 3:
-    print(f"Usage: {sys.argv[0]} FASTQ PAF", file=sys.stderr)
-    sys.exit(1)
+def main():
+    if len(sys.argv) != 3:
+        sys.exit(f"Usage: {sys.argv[0]} FASTQ PAF")
 
-fastq_path = sys.argv[1]
-paf_path = sys.argv[2]
+    fastq_path, paf_path = sys.argv[1:]
+    best_alignments = load_best_alignments(paf_path)
+    read_stats = collect_read_stats(fastq_path, best_alignments)
+    write_read_stats(read_stats, sys.stdout)
 
 
 def open_text(path):
@@ -28,191 +28,190 @@ def get_tool_name(path):
     basename = os.path.basename(path)
     if basename.endswith(".gz"):
         basename = basename[:-3]
-    for ext in (".fastq", ".fq"):
-        if basename.lower().endswith(ext):
-            return basename[: -len(ext)]
     return os.path.splitext(basename)[0]
 
 
-def parse_cigar(cigar):
-    ops = re.findall(r'(\d+)([MIDNSHP=X])', cigar)
-    counts = {"M": 0, "I": 0, "D": 0, "=": 0, "X": 0}
-    for length, op in ops:
-        if op in counts:
-            counts[op] += int(length)
+def get_paf_tag(fields, prefix, default=None):
+    for field in fields:
+        if field.startswith(prefix):
+            return field[len(prefix):]
+    return default
+
+
+def parse_paf_alignment(fields):
+    return {
+        "read_name": fields[0],
+        "read_length": int(fields[1]),
+        "query_start": int(fields[2]),
+        "query_end": int(fields[3]),
+        "matching_bases": int(fields[9]),
+        "alignment_block_length": int(fields[10]),
+        "tags": fields[12:],
+    }
+
+
+def load_best_alignments(path):
+    """Keep the alignment with most matching bases per read; first wins ties."""
+    best_alignments = {}
+    with open_text(path) as handle:
+        for line in handle:
+            fields = line.rstrip("\n").split("\t")
+            alignment = parse_paf_alignment(fields)
+            read_name = alignment["read_name"]
+            previous = best_alignments.get(read_name)
+            if previous is None or alignment["matching_bases"] > previous["matching_bases"]:
+                best_alignments[read_name] = alignment
+
+    return best_alignments
+
+
+def count_cigar_operations(cigar):
+    counts = {"I": 0, "D": 0, "=": 0, "X": 0}
+    for length, operation in re.findall(r"(\d+)([ID=X])", cigar):
+        counts[operation] += int(length)
     return counts
 
 
-def get_nm(fields):
-    for field in fields:
-        if isinstance(field, str) and field.startswith("NM:i:"):
-            return int(field.split(":")[-1])
-    return 0
+def count_alignment_outcomes(alignment, cigar):
+    counts = count_cigar_operations(cigar)
+    if "=" in cigar or "X" in cigar:
+        matches, substitutions = counts["="], counts["X"]
+    else:
+        edit_distance = int(get_paf_tag(alignment["tags"], "NM:i:", "0"))
+        matches = alignment["matching_bases"]
+        substitutions = max(edit_distance - counts["I"] - counts["D"], 0)
+    return matches, substitutions, counts["I"], counts["D"]
+
+
+def calculate_empirical_stats(alignment):
+    stats = dict.fromkeys([
+        "empirical_accuracy", "empirical_sub_rate", "empirical_ins_rate", "empirical_del_rate"
+    ])
+    if alignment is None:
+        return stats
+
+    cigar = get_paf_tag(alignment["tags"], "cg:Z:")
+    if cigar:
+        matches, substitutions, insertions, deletions = count_alignment_outcomes(alignment, cigar)
+        total = matches + substitutions + insertions + deletions
+        if total > 0:
+            stats["empirical_accuracy"] = matches / total
+            stats["empirical_sub_rate"] = substitutions / total
+            stats["empirical_ins_rate"] = insertions / total
+            stats["empirical_del_rate"] = deletions / total
+    elif alignment["alignment_block_length"] > 0:
+        stats["empirical_accuracy"] = (
+            alignment["matching_bases"] / alignment["alignment_block_length"]
+        )
+    return stats
 
 
 def reported_stats_from_phred(phred_scores):
+    if not phred_scores:
+        return None, None
     mean_error = sum(10 ** (-q / 10) for q in phred_scores) / len(phred_scores)
-    reported_accuracy = 1 - mean_error
-    reported_qscore = -10 * math.log10(mean_error)
-    return reported_accuracy, reported_qscore
+    return 1 - mean_error, -10 * math.log10(mean_error)
 
 
 def empirical_qscore_from_accuracy(empirical_accuracy):
-    if pd.isna(empirical_accuracy):
+    if empirical_accuracy is None:
         return None
     if empirical_accuracy >= 1.0:
         return math.inf
     return -10 * math.log10(1.0 - empirical_accuracy)
 
 
-def load_paf(path):
-    best_rows = {}
-    skipped_short = 0
-    skipped_invalid = 0
-
-    with open_text(path) as handle:
-        for line in handle:
-            fields = line.rstrip("\n").split("\t")
-
-            if len(fields) < 12:
-                skipped_short += 1
-                continue
-
-            try:
-                read_length = int(fields[1])
-                unaligned_start = int(fields[2])
-                read_end = int(fields[3])
-                matches = int(fields[9])
-                alignment_block_length = int(fields[10])
-            except ValueError:
-                skipped_invalid += 1
-                continue
-
-            cigar = None
-            for field in fields[12:]:
-                if field.startswith("cg:Z:"):
-                    cigar = field[5:]
-                    break
-
-            empirical_accuracy = None
-            empirical_sub_rate = None
-            empirical_ins_rate = None
-            empirical_del_rate = None
-            if cigar:
-                cigar_counts = parse_cigar(cigar)
-                has_eqx = "=" in cigar or "X" in cigar
-                if has_eqx:
-                    total_len = (
-                        cigar_counts["="]
-                        + cigar_counts["X"]
-                        + cigar_counts["I"]
-                        + cigar_counts["D"]
-                    )
-                    if total_len > 0:
-                        empirical_accuracy = cigar_counts["="] / total_len
-                        empirical_sub_rate = cigar_counts["X"] / total_len
-                        empirical_ins_rate = cigar_counts["I"] / total_len
-                        empirical_del_rate = cigar_counts["D"] / total_len
-                else:
-                    nm = get_nm(fields[12:])
-                    subs = max(nm - (cigar_counts["I"] + cigar_counts["D"]), 0)
-                    total_len = matches + subs + cigar_counts["I"] + cigar_counts["D"]
-                    if total_len > 0:
-                        empirical_accuracy = matches / total_len
-                        empirical_sub_rate = subs / total_len
-                        empirical_ins_rate = cigar_counts["I"] / total_len
-                        empirical_del_rate = cigar_counts["D"] / total_len
-            elif alignment_block_length > 0:
-                empirical_accuracy = matches / alignment_block_length
-
-            read_name = fields[0]
-            best_row = best_rows.get(read_name)
-            if best_row is None or matches > best_row["matching_bases"]:
-                best_rows[read_name] = {
-                    "read_name": read_name,
-                    "unaligned_start": unaligned_start,
-                    "unaligned_end": read_length - read_end,
-                    "empirical_accuracy": empirical_accuracy,
-                    "empirical_sub_rate": empirical_sub_rate,
-                    "empirical_ins_rate": empirical_ins_rate,
-                    "empirical_del_rate": empirical_del_rate,
-                    "aligned": True,
-                    "matching_bases": matches,
-                }
-
-    if skipped_short or skipped_invalid:
-        print(
-            f"Skipped {skipped_short + skipped_invalid} malformed PAF lines "
-            f"({skipped_short} short, {skipped_invalid} with invalid numeric fields).",
-            file=sys.stderr,
-        )
-
-    return pd.DataFrame(
-        best_rows.values(),
-        columns=[
-            "read_name",
-            "unaligned_start",
-            "unaligned_end",
-            "empirical_accuracy",
-            "empirical_sub_rate",
-            "empirical_ins_rate",
-            "empirical_del_rate",
-            "aligned",
-        ],
-    )
-
-
-# --- Load FASTQ and calculate read-level stats ---
-fastq_dict = {}
-with open_text(fastq_path) as handle:
-    for record in SeqIO.parse(handle, "fastq"):
-        seq = str(record.seq).upper()
-        reported_accuracy, reported_qscore = reported_stats_from_phred(
-            record.letter_annotations["phred_quality"]
-        )
-        gc = (seq.count("G") + seq.count("C")) / len(seq)
-        fastq_dict[record.id] = {
-            "read_length": len(seq),
-            "reported_accuracy": reported_accuracy,
-            "reported_qscore": reported_qscore,
-            "gc_content": gc,
+def calculate_alignment_coverage(read_length, alignment):
+    if alignment is None:
+        return {
+            "unaligned_start": None,
+            "unaligned_end": None,
+            "aligned_length": 0,
+            "aligned_fraction": 0.0,
+            "aligned": False,
         }
+    unaligned_start = alignment["query_start"]
+    unaligned_end = alignment["read_length"] - alignment["query_end"]
+    aligned_length = read_length - unaligned_start - unaligned_end
+    return {
+        "unaligned_start": unaligned_start,
+        "unaligned_end": unaligned_end,
+        "aligned_length": aligned_length,
+        "aligned_fraction": aligned_length / read_length if read_length else 0.0,
+        "aligned": True,
+    }
 
-fastq_df = (
-    pd.DataFrame.from_dict(fastq_dict, orient="index")
-    .reset_index()
-    .rename(columns={"index": "read_name"})
-)
-fastq_df["tool"] = get_tool_name(fastq_path)
 
-# --- Load PAF ---
-df_paf = load_paf(paf_path)
+def calculate_reported_stats(phred_scores, coverage):
+    whole_accuracy, whole_qscore = reported_stats_from_phred(phred_scores)
+    aligned_scores = []
+    if coverage["aligned"]:
+        # PAF query coordinates refer to the original read on either strand.
+        start = coverage["unaligned_start"]
+        end = len(phred_scores) - coverage["unaligned_end"]
+        aligned_scores = phred_scores[start:end]
+    aligned_accuracy, aligned_qscore = reported_stats_from_phred(aligned_scores)
+    return {
+        "reported_accuracy_whole_read": whole_accuracy,
+        "reported_qscore_whole_read": whole_qscore,
+        "reported_accuracy_aligned_region": aligned_accuracy,
+        "reported_qscore_aligned_region": aligned_qscore,
+    }
 
-# --- Merge FASTQ and PAF ---
-merged_df = pd.merge(fastq_df, df_paf, on="read_name", how="left")
-merged_df["aligned"] = merged_df["aligned"].astype("boolean").fillna(False)
-merged_df["unaligned_start"] = merged_df["unaligned_start"].astype("Int64")
-merged_df["unaligned_end"] = merged_df["unaligned_end"].astype("Int64")
-merged_df["empirical_qscore"] = merged_df["empirical_accuracy"].apply(
-    empirical_qscore_from_accuracy
-)
 
-# --- Columns to write ---
-output_cols = [
-    "tool",
-    "read_name",
-    "read_length",
-    "unaligned_start",
-    "unaligned_end",
-    "empirical_accuracy",
-    "empirical_qscore",
-    "empirical_sub_rate",
-    "empirical_ins_rate",
-    "empirical_del_rate",
-    "aligned",
-    "reported_accuracy",
-    "reported_qscore",
-    "gc_content",
-]
+def calculate_read_stats(record, alignment):
+    sequence = str(record.seq).upper()
+    coverage = calculate_alignment_coverage(len(sequence), alignment)
+    empirical = calculate_empirical_stats(alignment)
+    reported = calculate_reported_stats(record.letter_annotations["phred_quality"], coverage)
+    return {
+        "read_name": record.id,
+        "read_length": len(sequence),
+        **coverage,
+        **empirical,
+        "empirical_qscore": empirical_qscore_from_accuracy(empirical["empirical_accuracy"]),
+        **reported,
+        "gc_content": (sequence.count("G") + sequence.count("C")) / len(sequence)
+        if sequence else None,
+    }
 
-merged_df[output_cols].to_csv(sys.stdout, sep="\t", index=False)
+
+def collect_read_stats(fastq_path, best_alignments):
+    tool_name = get_tool_name(fastq_path)
+    read_stats = {}
+    with open_text(fastq_path) as handle:
+        for record in SeqIO.parse(handle, "fastq"):
+            stats = calculate_read_stats(record, best_alignments.get(record.id))
+            stats["tool"] = tool_name
+            read_stats[record.id] = stats
+    return read_stats.values()
+
+
+def write_read_stats(read_stats, output):
+    columns = [
+        "tool",
+        "read_name",
+        "read_length",
+        "aligned",
+        "unaligned_start",
+        "unaligned_end",
+        "aligned_length",
+        "aligned_fraction",
+        "empirical_accuracy",
+        "empirical_qscore",
+        "empirical_sub_rate",
+        "empirical_ins_rate",
+        "empirical_del_rate",
+        "reported_accuracy_whole_read",
+        "reported_qscore_whole_read",
+        "reported_accuracy_aligned_region",
+        "reported_qscore_aligned_region",
+        "gc_content",
+    ]
+    writer = csv.DictWriter(output, fieldnames=columns, delimiter="\t", lineterminator="\n")
+    writer.writeheader()
+    writer.writerows(read_stats)
+
+
+if __name__ == '__main__':
+    main()
