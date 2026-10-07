@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
 This script takes in read to reference alignments (along with the read and reference files), and it
-outputs all counts for 3-mer substitutions (1-bp substitutions between two matching bases).
+outputs all 192 3-mer substitution counts (1-bp substitutions between two matching bases), in read
+orientation. Error rates are nan for reference 3-mers with no aligned occurrences.
 """
 
 import argparse
 import collections
 import gzip
+import itertools
 import re
 
 CANONICAL_BASES = {'A', 'C', 'G', 'T'}
@@ -31,22 +33,25 @@ def main():
     ref = load_fasta_as_dict(args.reference)
     alignments = keep_only_best_alignment_per_read(load_alignments(args.paf))
 
-    sub_counts = collections.defaultdict(int)
+    sub_counts = {(left + base + right, left + alt + right): 0
+                  for left, base, right, alt in itertools.product('ACGT', repeat=4) if base != alt}
     total_counts = collections.defaultdict(int)
 
     for a in alignments:
         read_seq = reads[a.query_name][a.query_start:a.query_end]
         ref_seq = ref[a.target_name][a.target_start:a.target_end]
+        expanded_cigar = get_expanded_cigar(a.cigar)
         if a.strand == '-':
-            read_seq = reverse_complement(read_seq)
+            # Keep the original read orientation by reversing the reference and alignment.
+            ref_seq = reverse_complement(ref_seq)
+            expanded_cigar = expanded_cigar[::-1]
 
         for i in range(len(ref_seq) - 2):
             ref_3mer = ref_seq[i:i + 3]
             if set(ref_3mer) - CANONICAL_BASES:
                 continue
-            total_counts[canonicalise_3mer(ref_3mer)] += 1
+            total_counts[ref_3mer] += 1
 
-        expanded_cigar = get_expanded_cigar(a.cigar)
         aligned_read_seq, aligned_ref_seq = align_sequences(read_seq, ref_seq, expanded_cigar)
         assert len(aligned_read_seq) == len(aligned_ref_seq) == len(expanded_cigar)
 
@@ -60,12 +65,11 @@ def main():
             if set(ref_3mer + read_3mer) - CANONICAL_BASES:
                 continue
 
-            ref_3mer, read_3mer = canonicalise_3mer_substitution(ref_3mer, read_3mer)
             sub_counts[(ref_3mer, read_3mer)] += 1
 
     print('ref_seq\tread_seq\tcount\terror_rate')
     for (ref_3mer, read_3mer), count in sorted(sub_counts.items()):
-        error_rate = count / total_counts[ref_3mer]
+        error_rate = count / total_counts[ref_3mer] if total_counts[ref_3mer] else float('nan')
         print(f'{ref_3mer}\t{read_3mer}\t{count}\t{error_rate}')
 
 
@@ -92,18 +96,6 @@ def align_sequences(read_seq, ref_seq, expanded_cigar):
     assert read_i == len(read_seq)
     assert ref_i == len(ref_seq)
     return ''.join(aligned_read_seq), ''.join(aligned_ref_seq)
-
-
-def canonicalise_3mer(ref_3mer):
-    rev_ref_3mer = reverse_complement(ref_3mer)
-    return min(ref_3mer, rev_ref_3mer)
-
-
-def canonicalise_3mer_substitution(ref_3mer, read_3mer):
-    canonical_ref_3mer = canonicalise_3mer(ref_3mer)
-    if canonical_ref_3mer != ref_3mer:
-        return canonical_ref_3mer, reverse_complement(read_3mer)
-    return ref_3mer, read_3mer
 
 
 def load_alignments(filename):
