@@ -227,6 +227,11 @@ Homopolymer error rates in the real ONT reads increased with homopolymer length,
 \end{figure}
 
 
+\subsection{Computational resources}
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum (Table \ref{tab:supp_resources}).
+
+
 
 
 \section{Discussion}
@@ -344,6 +349,44 @@ NanoSim    & 53,227 & 309,873,325 & 50 & 214,233 & 5,821.7 &  8,771 \\
 PBSIM3     & 53,503 & 297,258,351 & 93 & 107,108 & 5,555.9 &  8,784 \\
 \midrule
 SimLoRD    & 53,202 & 300,580,690 &  5 & 700,862 & 5,649.8 &  9,033 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\begin{table}[!htbp]
+\centering
+\scriptsize
+\caption[Computational resources]{\textbf{Computational resources.}}
+\label{tab:supp_resources}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{
+>{\raggedright\arraybackslash}m{0.10\textwidth}
+>{\raggedleft\arraybackslash}m{0.11\textwidth}
+>{\raggedleft\arraybackslash}m{0.11\textwidth}
+>{\raggedleft\arraybackslash}m{0.11\textwidth}
+>{\raggedleft\arraybackslash}m{0.11\textwidth}
+}
+\toprule
+& \multicolumn{2}{c}{\textbf{Training}} & \multicolumn{2}{c}{\textbf{Simulation}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+\textbf{Tool} &
+\textbf{Elapsed time (h:m:s)} &
+\textbf{Peak memory (GB)} &
+\textbf{Elapsed time (h:m:s)} &
+\textbf{Peak memory (GB)} \\
+\midrule
+Badread   & 9:01:56 & 12.99 & 0:31:30 & 0.42 \\
+\midrule
+LongISLND & 0:14:57 & 6.39 & 0:04:26 & 14.49 \\
+\midrule
+lrsim     & 0:03:18 & 6.21 & 0:00:01 & 0.13 \\
+\midrule
+NanoSim   & 0:38:24 & 59.07 & 0:00:28 & 0.51 \\
+\midrule
+PBSIM3    & {---} & {---} & 0:01:32 & 0.02 \\
+\midrule
+SimLoRD   & {---} & {---} & 0:02:47 & 0.19 \\
 \bottomrule
 \end{tabular}
 \end{table}

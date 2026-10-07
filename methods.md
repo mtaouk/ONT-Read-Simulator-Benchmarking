@@ -247,6 +247,11 @@ cp lrsim extractModel.py "$CONDA_PREFIX/bin/"
 For each tool, I installed the latest release, with the following exception:
 * For LongISLND, the last tagged version is 0.9.5 from 9 years ago, so it seems likely that there will be no more releases. So I cloned from GitHub to get the very latest version, which has a couple little fixes after 0.9.5.
 
+Pomoxis (for homopolymer analysis):
+```bash
+conda create -n pomoxis pomoxis pandas=2.2.3
+```
+Latest version was 0.3.16.
 
 
 
@@ -613,19 +618,13 @@ done
 
 # Error analysis
 
-Install Pomoxis:
-```bash
-conda create -n pomoxis pomoxis pandas=2.2.3
-```
-Latest version was 0.3.16.
-
 Align reads (BAM format):
 ```bash
 conda activate mapping
 
 cd ~/2025-08_ONT_read_simulator_benchmark/analysis
 for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
-    minimap2 -t 32 -a -x map-ont --eqx --MD ../reference.fasta "$r".fastq | samtools view -u -F 0x904 | samtools sort > "$r".bam
+    minimap2 -t 32 -a -x map-ont --eqx --MD ../reference.fasta "$r".fastq | samtools view -u -F 0x904 | samtools sort -@ 8 > "$r".bam
     samtools index "$r".bam
 done
 ```
