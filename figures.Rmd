@@ -464,16 +464,16 @@ save_and_crop_figure("figures/figure_1.pdf", figure_1, height = 200, width = 200
 figure_1
 ```
 
-```{r figure_2}
+```{r figure_2, fig.width=7.87, fig.height=5.12}
 three_mer_files <- tribble(
-  ~tool,        ~file,                     ~colour,
-  "Real reads", "results/real.3mer_subs",  real_reads_colour,
-  "Badread",    "results/badread.3mer_subs", badread_colour,
-  "LongISLND",  "results/longislnd.3mer_subs", longislnd_colour,
-  "lrsim",      "results/lrsim.3mer_subs", lrsim_colour,
-  "NanoSim",    "results/nanosim.3mer_subs", nanosim_colour,
-  "PBSIM3",     "results/pbsim3.3mer_subs", pbsim3_colour,
-  "SimLoRD",    "results/simlord.3mer_subs", simlord_colour
+  ~tool,        ~file,                     ~colour,           ~title_colour,
+  "Real reads", "results/real.3mer_subs",  real_reads_colour, real_reads_dark,
+  "Badread",    "results/badread.3mer_subs", badread_colour, badread_dark,
+  "LongISLND",  "results/longislnd.3mer_subs", longislnd_colour, longislnd_dark,
+  "lrsim",      "results/lrsim.3mer_subs", lrsim_colour, lrsim_dark,
+  "NanoSim",    "results/nanosim.3mer_subs", nanosim_colour, nanosim_dark,
+  "PBSIM3",     "results/pbsim3.3mer_subs", pbsim3_colour, pbsim3_dark,
+  "SimLoRD",    "results/simlord.3mer_subs", simlord_colour, simlord_dark
 )
 
 three_mer_subs <- three_mer_files %>%
@@ -485,152 +485,52 @@ three_mer_subs <- three_mer_files %>%
     tool = factor(tool, levels = three_mer_files$tool)
   )
 
-real_substitution_order <- three_mer_subs %>%
-  filter(tool == "Real reads") %>%
-  arrange(error_rate) %>%
-  pull(substitution)
+# Pair all 192 substitution rates with their real-read rates.
+three_mer_scatter <- three_mer_subs %>%
+  filter(tool != "Real reads") %>%
+  left_join(
+    three_mer_subs %>%
+      filter(tool == "Real reads") %>%
+      select(substitution, real_error_rate = error_rate),
+    by = "substitution"
+  )
 
-three_mer_subs <- three_mer_subs %>%
-  mutate(substitution = factor(substitution, levels = real_substitution_order))
+# A log scale requires positive rates; flag new zero/missing values rather than silently dropping them.
+scatter_rates <- c(three_mer_scatter$real_error_rate, three_mer_scatter$error_rate)
+stopifnot(all(is.finite(scatter_rates) & scatter_rates > 0))
+scatter_limits <- range(scatter_rates) * c(0.8, 1.25)
 
-three_mer_panel_theme <- theme_bw() + theme(
-  axis.text.y = element_text(size = 6),
-  axis.text.x = element_text(
-    angle = 90, vjust = 0.5, hjust = 1, size = 4, family = "Menlo",
-    margin = margin(t = 1)
-  ),
-  axis.title.y = element_text(size = 7),
-  plot.margin = margin(2, 1, 4, 0),
-  panel.background = element_rect(fill = "white"),
-  panel.grid.major.x = element_blank(),
-  panel.grid.minor = element_blank()
-)
+three_mer_labels <- three_mer_files %>%
+  filter(tool != "Real reads") %>%
+  mutate(tool = factor(tool, levels = levels(three_mer_subs$tool)))
 
-make_three_mer_plot <- function(data, title, fill_colour, title_colour, max_three_mer_error_rate, show_x_axis = FALSE, show_y_label = FALSE) {
-  first_substitution <- levels(data$substitution)[1]
-  
-  if (show_y_label) {
-    y_label <- "Error rate"
-  } else {
-    y_label <- NULL
-  }
-    
-  plot <- ggplot(data, aes(x = substitution, y = error_rate)) +
-    geom_col(fill = fill_colour, colour = fill_colour, linewidth = 0.02) +
-    annotate(
-      "text",
-      x = first_substitution,
-      y = max_three_mer_error_rate,
-      label = title,
-      hjust = 0,
-      vjust = 1.25,
-      fontface = "bold",
-      size = 3.2,
-      colour = title_colour
-    ) +
-    scale_x_discrete(drop = FALSE) +
-    scale_y_continuous(
-      limits = c(0, max_three_mer_error_rate),
-      expand = c(0, 0),
-      labels = label_percent(accuracy = 0.1),
-      breaks = seq(0.0, 0.02, 0.005)
-    ) +
-    labs(x = NULL, y = y_label) +
-    three_mer_panel_theme
+figure_2 <- ggplot(three_mer_scatter, aes(x = real_error_rate, y = error_rate)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = reference_line_colour) +
+  geom_point(aes(colour = tool), shape = 16, size = 1.2, alpha = 0.8) +
+  geom_text(
+    data = three_mer_labels,
+    aes(x = scatter_limits[1], y = scatter_limits[2], label = tool, colour = I(title_colour)),
+    hjust = 0, vjust = 1, fontface = "bold", size = 4, inherit.aes = FALSE
+  ) +
+  facet_wrap(~tool, ncol = 3) +
+  scale_colour_manual(values = setNames(three_mer_files$colour, three_mer_files$tool), guide = "none") +
+  scale_x_log10(limits = scatter_limits, breaks = c(0.0001, 0.001, 0.01), labels = c("0.01%", "0.1%", "1%")) +
+  scale_y_log10(limits = scatter_limits, breaks = c(0.0001, 0.001, 0.01), labels = c("0.01%", "0.1%", "1%")) +
+  coord_fixed() +
+  labs(x = "Real-read substitution rate", y = "Simulated substitution rate") +
+  scatter_panel_theme +
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_blank(),
+    panel.grid.minor = element_blank(),
+    plot.margin = margin(5, 5, 5, 5)
+  )
 
-  if (!show_x_axis) {
-    plot <- plot + theme(
-      axis.text.x = element_blank(),
-      axis.ticks.x = element_blank(),
-      axis.title.x = element_blank()
-    )
-  } else {
-    plot <- plot + theme(
-      axis.ticks.x = element_blank(),
-      axis.ticks.length.x = grid::unit(0, "pt"),
-      plot.margin = margin(1, 1, 10, 0)
-    )
-  }
-
-  plot
-}
-
-plot_real <- make_three_mer_plot(
-  data = filter(three_mer_subs, tool == "Real reads"),
-  title = "Real reads",
-  fill_colour = real_reads_colour,
-  title_colour = real_reads_dark,
-  max_three_mer_error_rate = 0.024,
-  show_x_axis = TRUE,
-  show_y_label = TRUE
-)
-
-plot_Badread <- make_three_mer_plot(
-  data = filter(three_mer_subs, tool == "Badread"),
-  title = "Badread",
-  fill_colour = badread_colour,
-  title_colour = badread_dark,
-  max_three_mer_error_rate = 0.024
-)
-
-plot_LongISLND <- make_three_mer_plot(
-  data = filter(three_mer_subs, tool == "LongISLND"),
-  title = "LongISLND",
-  fill_colour = longislnd_colour,
-  title_colour = longislnd_dark,
-  max_three_mer_error_rate = 0.024
-)
-
-plot_lrsim <- make_three_mer_plot(
-  data = filter(three_mer_subs, tool == "lrsim"),
-  title = "lrsim",
-  fill_colour = lrsim_colour,
-  title_colour = lrsim_dark,
-  max_three_mer_error_rate = 0.014
-)
-
-plot_NanoSim <- make_three_mer_plot(
-  data = filter(three_mer_subs, tool == "NanoSim"),
-  title = "NanoSim",
-  fill_colour = nanosim_colour,
-  title_colour = nanosim_dark,
-  max_three_mer_error_rate = 0.009
-)
-
-plot_PBSIM3 <- make_three_mer_plot(
-  data = filter(three_mer_subs, tool == "PBSIM3"),
-  title = "PBSIM3",
-  fill_colour = pbsim3_colour,
-  title_colour = pbsim3_dark,
-  max_three_mer_error_rate = 0.009
-)
-
-plot_SimLoRD <- make_three_mer_plot(
-  data = filter(three_mer_subs, tool == "SimLoRD"),
-  title = "SimLoRD",
-  fill_colour = simlord_colour,
-  title_colour = simlord_dark,
-  max_three_mer_error_rate = 0.014
-)
-
-aligned_three_mer_plots <- align_plots(
-  plot_real, plot_Badread, plot_LongISLND,
-  plot_lrsim, plot_NanoSim, plot_PBSIM3,
-  plot_SimLoRD,
-  align = "v",
-  axis = "l"
-)
-
-figure_2 <- plot_grid(
-  plotlist = aligned_three_mer_plots,
-  ncol = 1,
-  rel_heights = c(1.33, 1, 1, 0.62, 0.44, 0.44, 0.62)
-)
-
-save_and_crop_figure("figures/figure_2.pdf", figure_2, height = 120, width = 170)
+save_and_crop_figure("figures/figure_2.pdf", figure_2, height = 110, width = 180)
 
 figure_2
 ```
+
 ```{r figure_3}
 homopolymers <- read_tsv("results/homopolymers.tsv", show_col_types = FALSE) %>%
   filter(rlen <= 9) %>%
@@ -1494,5 +1394,3 @@ save_and_crop_figure("figures/reported_vs_length.pdf", reported_vs_length, heigh
 
 reported_vs_length
 ```
-
-

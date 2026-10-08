@@ -207,12 +207,12 @@ When Q-scores were analysed at the per-base level rather than the whole-read lev
 
 \subsection{Error profiles}
 
-Errors in the real reads were strongly context dependent: the 96 3-mer substitution error rates spanned nearly two orders of magnitude, from 0.0263\% to 2.01\% (Figure \ref{fig:3mer_subs}). This is consistent with ONT sequencing's raw-current signal (the ``squiggle''), in which some \textit{k}-mers produce less distinct signals and are therefore more prone to basecalling errors\cite{krishnakumar2018systematic}. Badread and LongISLND were the only simulators to reproduce this broad pattern, although neither matched the real profile exactly. In contrast, lrsim, NanoSim, PBSIM3 and SimLoRD assigned roughly uniform error rates to all 3-mer substitution types, failing to reproduce the context specificity seen in the real reads.
+Errors in the real reads were strongly context dependent: the 192 3-mer substitution error rates spanned nearly three orders of magnitude, from 0.0059\% to 3.6\% (Figure \ref{fig:3mer_subs}). This is consistent with ONT sequencing's raw-current signal (the ``squiggle''), in which some \textit{k}-mers produce less distinct signals and are therefore more prone to basecalling errors\cite{krishnakumar2018systematic}. Badread and LongISLND were the only simulators to reproduce this broad pattern, although both produced elevated error rates for substitution types that were rare in the real reads. In contrast, lrsim, NanoSim, PBSIM3 and SimLoRD assigned roughly uniform error rates to all 3-mer substitution types, failing to reproduce the context-specific substitution errors seen in the real reads.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=1.0\textwidth]{figure_2.pdf}
-\caption[Substitution rates by 3-mer context]{\textbf{Substitution rates by 3-mer context.} Error rates for the 96 distinct 3-mer substitution types, in which only the middle base changes and reverse-complement equivalents are combined. Substitutions are ordered from lowest to highest error rate in the real reads, and the same order is used for all simulated datasets. A simulator is more realistic if its plot closely matches that of the real reads.}
+\includegraphics[width=0.84\textwidth]{figure_2.pdf}
+\caption[Substitution rates by 3-mer context]{\textbf{Substitution rates by 3-mer context.} Simulated vs real error rates for the 192 distinct 3-mer substitution types, in which only the middle base changes. Each point represents one 3-mer substitution. Real-read error rates range from 0.0059\% (\texttt{CTG}→\texttt{CGG}) to 3.6\% (\texttt{CGA}→\texttt{CAA}). A simulator is more realistic if the points lie close to the diagonal dashed line of equality.}
 \label{fig:3mer_subs}
 \end{figure*}
 
