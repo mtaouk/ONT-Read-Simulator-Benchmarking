@@ -222,7 +222,7 @@ Homopolymer error rates in the real ONT reads increased with homopolymer length,
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figure_3.pdf}
-\caption[Homopolymer error rates]{\textbf{Homopolymer error rates.} Homopolymer error rate as reported by Pomoxis, plotted as a function of homopolymer length for real reads and six ONT read simulators. Error rate is defined here as the fraction of reads in which the homopolymer length was not represented correctly. A simulator is more realistic if its curve closely matches that of the real reads.}
+\caption[Homopolymer error rates]{\textbf{Homopolymer error rates.} Homopolymer error rate as reported by Pomoxis, plotted as a function of homopolymer length for real reads and six ONT read simulators. Error rate is defined here as the fraction of reads in which the homopolymer length was not represented correctly. A simulator is more realistic if its curve closely matches that of the real reads. Observation counts and numbers of distinct reference loci are in Table \ref{tab:supp_homopolymer_counts}.}
 \label{fig:homopolymer_errors}
 \end{figure}
 
@@ -349,6 +349,49 @@ NanoSim    & 53,227 & 309,873,325 & 50 & 214,233 & 5,821.7 &  8,771 \\
 PBSIM3     & 53,503 & 297,258,351 & 93 & 107,108 & 5,555.9 &  8,784 \\
 \midrule
 SimLoRD    & 53,202 & 300,580,690 &  5 & 700,862 & 5,649.8 &  9,033 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\begin{table}[!htbp]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\caption[Homopolymer observation counts]{\textbf{Homopolymer counts.}}
+\label{tab:supp_homopolymer_counts}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{
+>{\raggedright\arraybackslash}m{0.11\textwidth}
+>{\raggedleft\arraybackslash}m{0.08\textwidth}
+*{7}{>{\raggedleft\arraybackslash}m{0.098\textwidth}}
+}
+\toprule
+\textbf{Homopolymer length (bp)} &
+\textbf{Reference genome} &
+\textbf{Real reads} &
+\textbf{Badread} &
+\textbf{LongISLND} &
+\textbf{lrsim} &
+\textbf{NanoSim} &
+\textbf{PBSIM3} &
+\textbf{SimLoRD} \\
+\midrule
+3 & 119,016 & 11,729,323 & 11,494,777 & 12,017,356 & 11,957,966 & 12,307,437 & 11,964,750 & 12,138,826 \\
+\midrule
+4 & 46,166 & 4,543,083 & 4,456,504 & 4,652,688 & 4,631,860 & 4,767,371 & 4,634,121 & 4,707,153 \\
+\midrule
+5 & 18,220 & 1,780,934 & 1,761,228 & 1,837,558 & 1,829,352 & 1,882,221 & 1,828,026 & 1,852,669 \\
+\midrule
+6 & 6,826 & 664,649 & 657,329 & 688,895 & 684,970 & 705,043 & 684,622 & 696,158 \\
+\midrule
+7 & 2,607 & 249,186 & 250,785 & 262,156 & 260,439 & 267,959 & 261,605 & 265,312 \\
+\midrule
+8 & 269 & 23,891 & 25,920 & 26,490 & 26,778 & 27,114 & 26,821 & 27,244 \\
+\midrule
+9 & 22 & 1,762 & 1,929 & 1,867 & 2,157 & 1,922 & 1,848 & 1,937 \\
+\midrule
+10 & 2 & 139 & 173 & 115 & 192 & 112 & 143 & 126 \\
 \bottomrule
 \end{tabular}
 \end{table}
