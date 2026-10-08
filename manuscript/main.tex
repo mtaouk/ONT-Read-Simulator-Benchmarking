@@ -216,13 +216,13 @@ Errors in the real reads were strongly context dependent: the 192 3-mer substitu
 \label{fig:3mer_subs}
 \end{figure*}
 
-Homopolymer error rates in the real ONT reads increased with homopolymer length, with the rise becoming steeper from 8 bp onward (Figure \ref{fig:homopolymer_errors}). LongISLND reproduced this overall pattern most closely, although its curve showed an unusual drop from 4-mer to 5-mer homopolymers. NanoSim produced a markedly different profile, with much lower error rates for homopolymers of 5 bp and longer despite being run with explicit homopolymer-length modelling for those lengths, showing that this feature did not reproduce the empirical pattern well. Badread, lrsim, PBSIM3 and SimLoRD generally showed increasing error with homopolymer length, but none followed the real-read curve closely, particularly for longer homopolymers.
+Homopolymer error rates in the real ONT reads rose at an increasing rate as homopolymers became longer (Figure \ref{fig:homopolymer_errors}). LongISLND reproduced this overall pattern most closely, although its curve showed an abrupt drop in error rate from 4-mer to 5-mer homopolymers due to a switch from per-base to whole-homopolymer sampling at length 5. All other tools reproduced this curvature poorly, with error rates that increased linearly with homopolymer length.
 
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figure_3.pdf}
-\caption[Homopolymer error rates]{\textbf{Homopolymer error rates.} Homopolymer error rate as reported by Pomoxis, plotted as a function of homopolymer length for real reads and six ONT read simulators. Error rate is defined here as the fraction of reads in which the homopolymer length was not represented correctly. A simulator is more realistic if its curve closely matches that of the real reads. Observation counts and numbers of distinct reference loci are in Table \ref{tab:supp_homopolymer_counts}.}
+\caption[Homopolymer error rates]{\textbf{Homopolymer error rates.} Homopolymer error rate as reported by Pomoxis, plotted as a function of homopolymer length for real reads and six ONT read simulators. Error rate is defined here as the fraction of reads in which the homopolymer length was not represented correctly. Observation counts and numbers of distinct reference loci are in Table \ref{tab:supp_homopolymer_counts}. Homopolymers of length 10 were excluded from this plot due to there being only two instances in the reference genome. A simulator is more realistic if its curve closely matches that of the real reads.}
 \label{fig:homopolymer_errors}
 \end{figure}
 
