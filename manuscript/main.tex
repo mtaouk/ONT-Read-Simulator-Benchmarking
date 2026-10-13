@@ -196,7 +196,7 @@ In contrast, Badread generates read lengths from a gamma distribution defined by
 \label{fig:read_qscores}
 \end{figure*}
 
-Each read that could be aligned to the reference genome was assigned an empirical Q-score, indicating its true accuracy. Each read also had a reported Q-score calculated from its FASTQ quality values. Comparing the joint and marginal distributions of these two Q-scores therefore provided a direct visual measure of how closely each simulated dataset resembled the real reads.
+Each read that could be aligned to the reference genome was assigned an empirical Q-score, indicating its true accuracy. Each read also had a reported Q-score calculated from its FASTQ quality values. Comparing the joint and marginal distributions of these two Q-scores therefore provided a direct visual measure of how closely each simulated dataset resembled the real reads. Summary statistics of the distributions are in Table \ref{tab:supp_read_qscores}.
 
 Only PBSIM3 was able to closely reproduce the signature of the real reads, including their distinctive bimodal distribution with a lower peak at $\sim$Q8 and a higher peak at $\sim$Q23 (Figure \ref{fig:read_qscores}). This likely reflects PBSIM3's sampling-based strategy: it copies read lengths and per-base FASTQ quality strings from training reads, samples template sequences of matching length from the reference genome, and introduces errors according to the sampled Q-scores. PBSIM3's reads only departed from the real reads in a few subtle ways: the real read distributions extended to lower qualities than the PBSIM3 reads, and the real reads had more outliers where empirical and reported Q-scores were in stark disagreement (e.g. reported Q20 but empirical Q10).
 
@@ -354,6 +354,40 @@ NanoSim    & 53,227 & 309,873,325 & 50 & 214,233 & 5,821.7 &  8,771 \\
 PBSIM3     & 53,503 & 297,258,351 & 93 & 107,108 & 5,555.9 &  8,784 \\
 \midrule
 SimLoRD    & 53,202 & 300,580,690 &  5 & 700,862 & 5,649.8 &  9,033 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\begin{table}[!htbp]
+\centering
+\scriptsize
+\caption[Read accuracy and alignment statistics]{\textbf{Read accuracy and alignment statistics.}}
+\label{tab:supp_read_qscores}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{
+>{\raggedright\arraybackslash}m{0.08\textwidth}
+*{4}{>{\raggedleft\arraybackslash}m{0.05\textwidth}}
+*{3}{>{\raggedleft\arraybackslash}m{0.09\textwidth}}
+}
+\toprule
+& \multicolumn{2}{c}{\makecell{\textbf{Empirical}\\\textbf{Q-score}}} & \multicolumn{2}{c}{\makecell{\textbf{Reported}\\\textbf{Q-score}}} & & & \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+\textbf{Dataset} & \textbf{Mean} & \textbf{SD} & \textbf{Mean} & \textbf{SD} & \textbf{Error-free alignments} & \textbf{Unaligned reads} & \textbf{Unaligned bases} \\
+\midrule
+Real reads & 19.28 & 6.19 & 19.54 & 5.96 & 2.94\% & 1.06\% & 1.88\% \\
+\midrule
+Badread & 18.19 & 5.16 & 16.44 & 3.18 & 2.07\% & 6.44\% & 4.06\% \\
+\midrule
+LongISLND & 14.73 & 0.66 & 14.40 & 0.33 & 0.05\% & 0.24\% & 0.01\% \\
+\midrule
+lrsim & 16.10 & 4.72 & 14.00 & 0.00 & 0.73\% & 0.18\% & 0.02\% \\
+\midrule
+NanoSim & 15.45 & 3.79 & 16.30 & 0.67 & 2.19\% & 1.14\% & 2.50\% \\
+\midrule
+PBSIM3 & 20.13 & 5.76 & 19.62 & 5.88 & 2.27\% & 0.19\% & 0.17\% \\
+\midrule
+SimLoRD & 14.84 & 3.99 & 14.69 & 4.02 & 0.35\% & 0.90\% & 0.05\% \\
 \bottomrule
 \end{tabular}
 \end{table}

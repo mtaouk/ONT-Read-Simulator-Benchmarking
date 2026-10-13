@@ -19,6 +19,7 @@ data <- read_tsv("results/read_analysis_results.tsv", show_col_types = FALSE)
 data <- data %>%
   mutate(
     empirical_qscore = as.numeric(empirical_qscore),
+    empirical_qscore_uncapped = empirical_qscore,  # retain raw values for summary statistics
     empirical_qscore = pmin(empirical_qscore, 40),  # set infinities to 40
     tool = recode(
       tool,
@@ -465,7 +466,35 @@ figure_1
 ```
 
 ```{r read_accuracy_stats}
+read_accuracy_stats <- data %>%
+  group_by(tool) %>%
+  summarise(
+    aligned_reads = sum(aligned),
+    unaligned_percent = 100 * mean(!aligned),
+    unaligned_bases_percent = 100 * (1 - sum(aligned_length) / sum(read_length)),
+    error_free_reads = sum(aligned & is.infinite(empirical_qscore_uncapped)),
+    error_free_percent = 100 * error_free_reads / aligned_reads,
+    empirical_mean = mean(empirical_qscore_uncapped[aligned & is.finite(empirical_qscore_uncapped)]),
+    empirical_sd = sd(empirical_qscore_uncapped[aligned & is.finite(empirical_qscore_uncapped)]),
+    reported_mean = mean(reported_qscore_aligned_region[aligned]),
+    reported_sd = sd(reported_qscore_aligned_region[aligned]),
+    .groups = "drop"
+  ) %>%
+  arrange(match(tool, c("Real reads", "Badread", "LongISLND", "lrsim", "NanoSim", "PBSIM3", "SimLoRD")))
 
+read_accuracy_stats %>%
+  mutate(across(ends_with("_percent"), ~ sprintf("%.2f%%", .x))) %>%
+  knitr::kable(digits = 2)
+
+cat(sprintf(
+  "%s & %.2f & %.2f & %.2f & %.2f & %s & %s & %s \\\\\n",
+  read_accuracy_stats$tool,
+  read_accuracy_stats$empirical_mean, read_accuracy_stats$empirical_sd,
+  read_accuracy_stats$reported_mean, read_accuracy_stats$reported_sd,
+  paste0(sprintf("%.2f", read_accuracy_stats$error_free_percent), "\\%"),
+  paste0(sprintf("%.2f", read_accuracy_stats$unaligned_percent), "\\%"),
+  paste0(sprintf("%.2f", read_accuracy_stats$unaligned_bases_percent), "\\%")
+), sep = "")
 ```
 
 ```{r figure_2, fig.width=7.87, fig.height=5.12}
