@@ -227,6 +227,11 @@ Homopolymer error rates in the real ONT reads rose at an increasing rate as homo
 \end{figure}
 
 
+\subsection{Assembly accuracy}
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum (Figure \ref{fig:supp_assemblies}).
+
+
 \subsection{Computational resources}
 
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum (Table \ref{tab:supp_resources}).
@@ -492,6 +497,18 @@ SimLoRD   & {---} & {---} & 0:02:47 & 0.19 \\
 \includegraphics[width=0.69\textwidth]{figure_s6.pdf}
 \caption[Q-score calibration curve]{\textbf{Q-score calibration curve.} Per-base Q-score calibration for real and simulated datasets. Each point represents one reported base Q-score bin (x-axis), and its y-value is the empirical base Q-score calculated from the observed error rate among bases with that reported Q-score. Empirical error rate was defined as the fraction of bases in the bin that were mismatches or insertions, plus deletion-associated events estimated as half the count of matched bases adjacent to deletions. The dashed diagonal indicates perfect calibration, where reported and empirical base Q-scores are equal.}
 \label{fig:supp_qscore_calibration}
+\end{figure}
+
+
+
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.69\textwidth]{figure_s7.pdf}
+\caption[Assembly accuracy]{\textbf{Assembly accuracy.} For each test read set, we randomly subsampled them to depths ranging from 1--50$\times$. Each subsampled set was assembled with five assemblers: Flye, metaMDBG, miniasm+Minipolish, myloasm and Raven. Assembly accuracy was quantified by taking the longest contig ($\ge$20 Mbp), trimming 1000 bp from each end (to remove assembly artefacts that can arise from non-circular read simulation), aligning to the reference genome and dividing the matching bases by the alignment length. A simulator is more realistic if its plot closely matches that of the real reads.
+
+While real reads rarely produced an error-free assembly (Q$\infty$), simulated reads from Badread, lrsim, NanoSim, PBSIM3 and SimLoRD often did, demonstrating that they insufficiently model systematic read errors. LongISLND was best able to mimic the accuracy-vs-depth relationship of the real reads. Some assemblers performed poorly on reads from certain simulators: Raven with LongISLND, metaMDBG with NanoSim, myloasm with Nanosim, Raven with NanoSim.}
+\label{fig:supp_assemblies}
 \end{figure}
 
 

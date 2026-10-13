@@ -616,7 +616,7 @@ done
 
 
 
-# Error analysis
+## Error analysis
 
 Align reads (BAM format):
 ```bash
@@ -659,7 +659,81 @@ done
 
 
 
-# Tarball data for public repo
+## Assembly analysis
+
+Subsample each read set to 1-50x:
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/
+mkdir -p assemblies
+cd ~/2025-08_ONT_read_simulator_benchmark/assemblies
+
+genome_size=2972545
+rm -f subsample_commands.txt
+for r in real badread longislnd lrsim nanosim pbsim3 simlord; do
+    mkdir -p "$r"
+    full=/home/wickr/2025-08_ONT_read_simulator_benchmark/analysis/"$r".fastq
+    mean_len=$(awk 'NR % 4 == 2 {n++; b += length($0)} END {print b/n}' "$full")
+    for d in {01..50}; do
+        mkdir -p "$r"/"$d"
+        reads=$(awk -v g="$genome_size" -v depth="$d" -v L="$mean_len" 'BEGIN{printf("%.0f", (g*depth)/L)}')
+        echo "seqtk sample -s $d $full $reads > $r/$d/reads.fastq" >> subsample_commands.txt
+    done
+done
+
+parallel -j 32 < subsample_commands.txt
+rm subsample_commands.txt
+```
+
+Assemble each with a simple Autocycler pipeline:
+```bash
+conda activate autocycler
+for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
+    for d in {01..50}; do
+        cd ~/2025-08_ONT_read_simulator_benchmark/assemblies/"$r"/"$d"
+        /home/wickr/2025-08_ONT_read_simulator_benchmark/scripts/autocycler_simple.sh reads.fastq 16 5
+    done
+done
+```
+
+Make a doubled reference genome (allows complete alignment regardless of starting position):
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark
+seqtk seq reference.fasta | awk '/^>/ {print; next} {print $0 $0}' > doubled_reference.fasta
+```
+
+Put assembly statistics in a table:
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/assemblies
+printf "sim_tool\tdepth\tassembler\tassembly_size\tassembly_contigs\tassembly_n50\tcoverage\tidentity_whole\tidentity_trimmed\tcomplete\n" > assemblies.tsv
+for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
+    for d in {01..50}; do
+        for a in flye metamdbg miniasm myloasm raven autocycler; do
+            assembly="$r/$d/assemblies/$a.fasta"
+            if [[ "$a" == autocycler ]]; then
+                assembly="$r/$d/autocycler_out/consensus_assembly.fasta"
+            fi
+            rm -f alignments_whole.paf alignments_trimmed.paf assembly_trimmed.fasta
+            if [[ -s "$assembly" ]]; then
+                minimap2 -c --eqx ../doubled_reference.fasta "$assembly" > alignments_whole.paf
+                seqtk seq -l0 "$assembly" | awk '
+                    /^>/ {header = $0; next}
+                    length($0) > length(longest) {longest = $0; name = header}
+                    END {if (length(longest) >= 2000000) print name "\n" substr(longest, 1001, length(longest) - 2000)}
+                ' > assembly_trimmed.fasta
+                if [[ -s assembly_trimmed.fasta ]]; then
+                    minimap2 -c --eqx ../doubled_reference.fasta assembly_trimmed.fasta > alignments_trimmed.paf
+                fi
+            fi
+            ../scripts/analyse_assembly.py "$r" "$d" "$a" "$assembly" alignments_whole.paf alignments_trimmed.paf ../reference.fasta >> assemblies.tsv
+        done
+    done
+done
+rm -f alignments_whole.paf alignments_trimmed.paf assembly_trimmed.fasta
+```
+
+
+
+## Tarball data for public repo
 
 ```bash
 cd ~/2025-08_ONT_read_simulator_benchmark
