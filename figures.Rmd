@@ -475,14 +475,14 @@ read_accuracy_stats <- data %>%
   summarise(
     empirical_mean = weighted.mean(
       empirical_qscore_uncapped[aligned & is.finite(empirical_qscore_uncapped)],
-      read_length[aligned & is.finite(empirical_qscore_uncapped)]
+      aligned_length[aligned & is.finite(empirical_qscore_uncapped)]
     ),
     empirical_sd = weighted_sd(
       empirical_qscore_uncapped[aligned & is.finite(empirical_qscore_uncapped)],
-      read_length[aligned & is.finite(empirical_qscore_uncapped)]
+      aligned_length[aligned & is.finite(empirical_qscore_uncapped)]
     ),
-    reported_mean = weighted.mean(reported_qscore_aligned_region[aligned], read_length[aligned]),
-    reported_sd = weighted_sd(reported_qscore_aligned_region[aligned], read_length[aligned]),
+    reported_mean = weighted.mean(reported_qscore_aligned_region[aligned], aligned_length[aligned]),
+    reported_sd = weighted_sd(reported_qscore_aligned_region[aligned], aligned_length[aligned]),
     unaligned_bases_percent = 100 * (1 - sum(aligned_length) / sum(read_length)),
     .groups = "drop"
   ) %>%
@@ -706,6 +706,67 @@ per_base <- files %>%
 per_base$error_qscore <- pmin(per_base$error_qscore, 60)  # set infinities to 60
 
 per_base_real <- per_base %>% filter(tool == "Real reads")
+```
+
+```{r wasserstein_stats}
+weighted_wasserstein <- function(x, y, x_weights, y_weights) {
+  stopifnot(
+    length(x) == length(x_weights), length(y) == length(y_weights),
+    all(is.finite(x)), all(is.finite(y)),
+    all(is.finite(x_weights)), all(is.finite(y_weights)),
+    all(x_weights >= 0), all(y_weights >= 0),
+    sum(x_weights) > 0, sum(y_weights) > 0
+  )
+  values <- c(x, y)
+  mass_difference <- c(x_weights / sum(x_weights), -y_weights / sum(y_weights))
+  order_index <- order(values)
+  cdf_difference <- cumsum(mass_difference[order_index])
+  sum(diff(values[order_index]) * abs(head(cdf_difference, -1)))
+}
+
+real_aligned <- df_Real_reads %>% filter(aligned)
+real_empirical <- real_aligned %>% filter(is.finite(empirical_qscore_uncapped))
+
+wasserstein_stats <- map_dfr(
+  c("Badread", "LongISLND", "lrsim", "NanoSim", "PBSIM3", "SimLoRD"),
+  function(tool_name) {
+    reads <- data %>% filter(tool == tool_name)
+    aligned_reads <- reads %>% filter(aligned)
+    empirical_reads <- aligned_reads %>% filter(is.finite(empirical_qscore_uncapped))
+    bases <- per_base %>% filter(tool == tool_name)
+
+    tibble(
+      tool = tool_name,
+      read_length_bp = weighted_wasserstein(
+        reads$read_length, df_Real_reads$read_length,
+        reads$read_length, df_Real_reads$read_length
+      ),
+      empirical_qscore = weighted_wasserstein(
+        empirical_reads$empirical_qscore_uncapped, real_empirical$empirical_qscore_uncapped,
+        empirical_reads$aligned_length, real_empirical$aligned_length
+      ),
+      reported_qscore = weighted_wasserstein(
+        aligned_reads$reported_qscore_aligned_region, real_aligned$reported_qscore_aligned_region,
+        aligned_reads$aligned_length, real_aligned$aligned_length
+      ),
+      correct_base_qscore = weighted_wasserstein(
+        bases$qscore, per_base_real$qscore, bases$match, per_base_real$match
+      ),
+      error_base_qscore = weighted_wasserstein(
+        bases$qscore, per_base_real$qscore, bases$all_errors, per_base_real$all_errors
+      )
+    )
+  }
+)
+
+wasserstein_stats %>% knitr::kable(digits = 2)
+
+cat(sprintf(
+  "%s & %.2f & %.2f & %.2f & %.2f & %.2f \\\\",
+  wasserstein_stats$tool, wasserstein_stats$read_length_bp,
+  wasserstein_stats$empirical_qscore, wasserstein_stats$reported_qscore,
+  wasserstein_stats$correct_base_qscore, wasserstein_stats$error_base_qscore
+), sep = "\n")
 ```
 
 

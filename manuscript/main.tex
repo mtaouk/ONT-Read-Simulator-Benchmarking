@@ -96,7 +96,7 @@ Each simulator was configured to maximise the realism of generated reads. For si
 
 
 \subsection{Evaluation metrics}
-Simulated and real test reads were compared across multiple read-level and base-level metrics to assess realism. We did not rely on formal statistical tests, because with datasets of this size, even trivial differences can be statistically significant. Instead, we compared the shapes of distributions and the relationships between variables in simulated and real data, which provides a more direct and interpretable measure of realism.
+Simulated and real test reads were compared across multiple read-level and base-level metrics to assess realism. We did not rely on formal statistical tests, because with datasets of this size, even trivial differences can be statistically significant. Instead, we compared the shapes of distributions and the relationships between variables in simulated and real data, which provides a more direct and interpretable measure of realism. We quantified discrepancies in read-length and Q-score distributions using the Wasserstein-1 distance, calculated as the integral of the absolute difference between their normalised weighted cumulative distribution functions (Table \ref{tab:supp_wasserstein}).
 
 Read lengths were extracted from FASTQ files and summarised using seqkit v2.13.0\cite{shen2016seqkit}. Read length distributions were visualised as histograms using the same bin widths and axis limits across all datasets to enable direct visual comparison.
 
@@ -192,7 +192,7 @@ In contrast, Badread generates read lengths from a gamma distribution defined by
 \begin{figure*}[t]
 \centering
 \includegraphics[width=1.0\textwidth]{figure_1.pdf}
-\caption[Empirical and reported read Q-scores]{\textbf{Empirical and reported read Q-scores.} In each panel, the central scatter plot shows each aligned read's reported Q-score (x-axis) and empirical Q-score (y-axis). The reported read Q-score was calculated from the FASTQ quality string by converting base Q-scores to error probabilities, averaging those probabilities across the read, and converting the mean error probability back to a Q-score. Only the aligned region of the read was used to calculate reported read Q-score. The empirical read Q-score was calculated from the read-to-reference alignment identity, converted to Q-score. The top y-axis tick is labelled $\infty$ because some reads contained no errors, giving an empirical error rate of zero and therefore an infinite empirical Q-score. The top marginal histogram for each panel shows the distribution of reported read Q-scores, and the right marginal histogram shows the distribution of empirical read Q-scores. Histogram bars are weighted by read length, so the marginal axes represent the number of bases in each bin. A simulator is more realistic if its plot closely matches that of the real reads.}
+\caption[Empirical and reported read Q-scores]{\textbf{Empirical and reported read Q-scores.} In each panel, the central scatter plot shows each aligned read's reported Q-score (x-axis) and empirical Q-score (y-axis). The reported read Q-score was calculated from the FASTQ quality string by converting base Q-scores to error probabilities, averaging those probabilities across the read, and converting the mean error probability back to a Q-score. Only the aligned region of the read was used to calculate reported read Q-score. The empirical read Q-score was calculated from the read-to-reference alignment identity, converted to Q-score. The top y-axis tick is labelled $\infty$ because some reads contained no errors, giving an empirical error rate of zero and therefore an infinite empirical Q-score. The top marginal histogram for each panel shows the distribution of reported read Q-scores, and the right marginal histogram shows the distribution of empirical read Q-scores. Histogram bars are weighted by aligned read length, so the marginal axes represent the number of aligned read bases in each bin. A simulator is more realistic if its plot closely matches that of the real reads. Wasserstein distances to quantify the difference in distributions are available in Table \ref{tab:supp_wasserstein}.}
 \label{fig:read_qscores}
 \end{figure*}
 
@@ -362,7 +362,7 @@ SimLoRD    & 53,202 & 300,580,690 &  5 & 700,862 & 5,649.8 &  9,033 \\
 \begin{table}[!htbp]
 \centering
 \scriptsize
-\caption[Read accuracy and alignment statistics]{\textbf{Read accuracy and alignment statistics.} For empirical and reported Q-scores, the mean and standard deviation (SD) values are weighted by read length. Reads without any errors in their alignments have an empirical Q-score of Q$\infty$ and were therefore excluded from the empirical Q-score mean and SD calculations.}
+\caption[Read accuracy and alignment statistics]{\textbf{Read accuracy and alignment statistics.} For empirical and reported Q-scores, the mean and standard deviation (SD) values are weighted by aligned read length. Reads without any errors in their alignments have an empirical Q-score of Q$\infty$ and were therefore excluded from the empirical Q-score mean and SD calculations.}
 \label{tab:supp_read_accuracy}
 \renewcommand{\arraystretch}{1.15}
 \begin{tabular}{
@@ -375,22 +375,56 @@ SimLoRD    & 53,202 & 300,580,690 &  5 & 700,862 & 5,649.8 &  9,033 \\
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}
 \textbf{Dataset} & \textbf{Mean} & \textbf{SD} & \textbf{Mean} & \textbf{SD} & \textbf{Unaligned bases} \\
 \midrule
-Real reads & 18.91 & 6.10 & 19.17 & 5.88 & 1.88\% \\
+Real reads & 18.98 & 6.07 & 19.24 & 5.84 & 1.88\% \\
 \midrule
-Badread & 18.20 & 5.07 & 16.48 & 3.17 & 4.06\% \\
+Badread & 18.20 & 5.06 & 16.48 & 3.16 & 4.06\% \\
 \midrule
 LongISLND & 14.69 & 0.34 & 14.39 & 0.18 & 0.01\% \\
 \midrule
 lrsim & 16.06 & 4.64 & 14.00 & 0.00 & 0.02\% \\
 \midrule
-NanoSim & 14.89 & 3.03 & 16.29 & 0.46 & 2.50\% \\
+NanoSim & 14.89 & 3.01 & 16.29 & 0.46 & 2.50\% \\
 \midrule
-PBSIM3 & 19.89 & 5.68 & 19.29 & 5.78 & 0.17\% \\
+PBSIM3 & 19.89 & 5.68 & 19.30 & 5.78 & 0.17\% \\
 \midrule
-SimLoRD & 14.77 & 3.97 & 14.64 & 4.04 & 0.05\% \\
+SimLoRD & 14.77 & 3.97 & 14.64 & 4.03 & 0.05\% \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{table}[!htbp]
+\centering
+\scriptsize
+\caption[Wasserstein distances from real-read distributions]{\textbf{Wasserstein distances from real-read distributions.} Wasserstein-1 distances comparing the simulated reads to the real reads for the following distributions: read length (Figure \ref{fig:supp_read_length}), empirical read Q-score (Figure \ref{fig:read_qscores} y-axis), reported read Q-score (Figure \ref{fig:read_qscores} x-axis), correct base Q-score (Figure \ref{fig:supp_qscore_correct_bases}) and error base Q-score (Figure \ref{fig:supp_qscore_incorrect_bases}). Smaller values indicate a closer match between the simulated-read and real-read distributions. Read lengths are weighted by full read length, and read Q-scores are weighted by aligned read length. Reported read Q-scores are calculated over the aligned interval, and reads without any errors in their alignments have an empirical Q-score of Q$\infty$ and were therefore excluded from the empirical Q-score distance.}
+\label{tab:supp_wasserstein}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{
+>{\raggedright\arraybackslash}m{0.10\textwidth}
+*{5}{>{\raggedleft\arraybackslash}m{0.08\textwidth}}
+}
+\toprule
+\textbf{Simulator} &
+\makecell[r]{\textbf{Read}\\\textbf{length}} &
+\makecell[r]{\textbf{Empirical}\\\textbf{read}\\\textbf{Q-score}} &
+\makecell[r]{\textbf{Reported}\\\textbf{read}\\\textbf{Q-score}} &
+\makecell[r]{\textbf{Correct}\\\textbf{base}\\\textbf{Q-score}} &
+\makecell[r]{\textbf{Error}\\\textbf{base}\\\textbf{Q-score}} \\
+\midrule
+Badread & 3381.92 & 1.54 & 3.47 & 0.69 & 4.57 \\
+\midrule
+LongISLND & 2264.51 & 6.34 & 6.68 & 0.71 & 7.62 \\
+\midrule
+lrsim & 2413.46 & 3.55 & 7.01 & 23.98 & 7.70 \\
+\midrule
+NanoSim & 2484.42 & 4.83 & 5.49 & 9.16 & 8.07 \\
+\midrule
+PBSIM3 & 2430.03 & 0.92 & 0.07 & 0.10 & 0.51 \\
+\midrule
+SimLoRD & 2570.21 & 4.43 & 4.74 & 22.02 & 4.60 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 
 
 \begin{table}[!htbp]
@@ -501,7 +535,7 @@ Despite intending to improve the realism of homopolymer-length errors, this mode
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.69\textwidth]{figure_s3.pdf}
-\caption[Read length distributions]{\textbf{Read length distributions.} Histograms are shown for the real and simulated datasets. The x-axis shows read length in 1 kbp bins. Histogram bars are weighted by read length, so the y-axis represents the total number of bases contributed by reads in each length bin rather than the number of reads. A simulator is more realistic if its histogram closely matches that of the real reads.}
+\caption[Read length distributions]{\textbf{Read length distributions.} Histograms are shown for the real and simulated datasets. The x-axis shows read length in 1 kbp bins. Histogram bars are weighted by read length, so the y-axis represents the total number of bases contributed by reads in each length bin rather than the number of reads. A simulator is more realistic if its histogram closely matches that of the real reads. Wasserstein distances to quantify the difference in distributions are available in Table \ref{tab:supp_wasserstein}.}
 \label{fig:supp_read_length}
 \end{figure}
 
@@ -511,7 +545,7 @@ Despite intending to improve the realism of homopolymer-length errors, this mode
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.69\textwidth]{figure_s4.pdf}
-\caption[Correct base Q-score distribution]{\textbf{Correct base Q-score distribution.} Reported base Q-score distributions for correctly called bases in the real and simulated datasets. In each panel, bars show the number of bases in each reported base Q-score bin. A base was counted as correct only if it matched the reference and was not adjacent to a deletion in the alignment. A simulator is more realistic if its histogram closely matches that of the real reads.}
+\caption[Correct base Q-score distribution]{\textbf{Correct base Q-score distribution.} Reported base Q-score distributions for correctly called bases in the real and simulated datasets. In each panel, bars show the number of bases in each reported base Q-score bin. A base was counted as correct only if it matched the reference and was not adjacent to a deletion in the alignment. A simulator is more realistic if its histogram closely matches that of the real reads. Wasserstein distances to quantify the difference in distributions are available in Table \ref{tab:supp_wasserstein}.}
 \label{fig:supp_qscore_correct_bases}
 \end{figure}
 
@@ -521,7 +555,7 @@ Despite intending to improve the realism of homopolymer-length errors, this mode
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.69\textwidth]{figure_s5.pdf}
-\caption[Error-associated base Q-score distribution]{\textbf{Error-associated base Q-score distribution.} Reported base Q-score distributions for error-associated bases in the real and simulated datasets. In each panel, bars show the number of error-associated bases in each reported base Q-score bin. Error-associated bases were defined as mismatches and insertions, plus deletion-associated events estimated as half the number of matched bases adjacent to deletions, because deleted bases themselves have no reported Q-score. A simulator is more realistic if its histogram closely matches that of the real reads.}
+\caption[Error-associated base Q-score distribution]{\textbf{Error-associated base Q-score distribution.} Reported base Q-score distributions for error-associated bases in the real and simulated datasets. In each panel, bars show the number of error-associated bases in each reported base Q-score bin. Error-associated bases were defined as mismatches and insertions, plus deletion-associated events estimated as half the number of matched bases adjacent to deletions, because deleted bases themselves have no reported Q-score. A simulator is more realistic if its histogram closely matches that of the real reads. Wasserstein distances to quantify the difference in distributions are available in Table \ref{tab:supp_wasserstein}.}
 \label{fig:supp_qscore_incorrect_bases}
 \end{figure}
 
