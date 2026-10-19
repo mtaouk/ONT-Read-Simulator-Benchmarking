@@ -708,6 +708,38 @@ per_base$error_qscore <- pmin(per_base$error_qscore, 60)  # set infinities to 60
 per_base_real <- per_base %>% filter(tool == "Real reads")
 ```
 
+```{r paired_error_stats}
+stopifnot(
+  all(is.finite(three_mer_scatter$error_rate) & three_mer_scatter$error_rate > 0),
+  all(is.finite(three_mer_scatter$real_error_rate) & three_mer_scatter$real_error_rate > 0)
+)
+substitution_mae <- three_mer_scatter %>%
+  group_by(tool) %>%
+  summarise(
+    substitution_log10_mae = mean(abs(log10(error_rate) - log10(real_error_rate))),
+    .groups = "drop"
+  )
+
+homopolymer_pairs <- homopolymers %>%
+  filter(tool != "Real reads", rlen %in% 3:9) %>%
+  left_join(
+    homopolymers %>%
+      filter(tool == "Real reads", rlen %in% 3:9) %>%
+      select(rlen, real_error_rate = error_rate),
+    by = "rlen"
+  )
+stopifnot(
+  all(is.finite(homopolymer_pairs$error_rate)),
+  all(is.finite(homopolymer_pairs$real_error_rate))
+)
+homopolymer_mae <- homopolymer_pairs %>%
+  group_by(tool) %>%
+  summarise(
+    homopolymer_mae_pp = 100 * mean(abs(error_rate - real_error_rate)),
+    .groups = "drop"
+  )
+```
+
 ```{r wasserstein_stats}
 weighted_wasserstein <- function(x, y, x_weights, y_weights) {
   stopifnot(
@@ -759,13 +791,18 @@ wasserstein_stats <- map_dfr(
   }
 )
 
-wasserstein_stats %>% knitr::kable(digits = 2)
+distance_metrics <- wasserstein_stats %>%
+  left_join(substitution_mae, by = "tool") %>%
+  left_join(homopolymer_mae, by = "tool")
+
+distance_metrics %>% knitr::kable(digits = c(0, 2, 2, 2, 2, 2, 3, 2))
 
 cat(sprintf(
-  "%s & %.2f & %.2f & %.2f & %.2f & %.2f \\\\",
-  wasserstein_stats$tool, wasserstein_stats$read_length_bp,
-  wasserstein_stats$empirical_qscore, wasserstein_stats$reported_qscore,
-  wasserstein_stats$correct_base_qscore, wasserstein_stats$error_base_qscore
+  "%s & %.2f & %.2f & %.2f & %.2f & %.2f & %.3f & %.2f \\\\",
+  distance_metrics$tool, distance_metrics$read_length_bp,
+  distance_metrics$empirical_qscore, distance_metrics$reported_qscore,
+  distance_metrics$correct_base_qscore, distance_metrics$error_base_qscore,
+  distance_metrics$substitution_log10_mae, distance_metrics$homopolymer_mae_pp
 ), sep = "\n")
 ```
 
