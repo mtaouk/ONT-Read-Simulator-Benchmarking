@@ -146,26 +146,10 @@ print(statistics.stdev(qscores))
 ```
 
 substitution:insertion:deletion ratio:
-```python
-paf_filename = "training_reads.paf"
-
-import re
-counts = {"X": 0, "I": 0, "D": 0}
-
-with open(paf_filename, "rt") as f:
-    for line in f:
-        for part in line.rstrip().split("\t"):
-            if part.startswith("cg:Z:"):
-                for p in re.findall(r"\d+[IDX=M]", part[5:]):
-                    op = p[-1]
-                    if op in counts:
-                        counts[op] += int(p[:-1])
-                break
-
-total = counts["X"] + counts["I"] + counts["D"]
-print(f"{int(round(counts['X'] / total * 1000))}:{int(round(counts['I'] / total * 1000))}:{int(round(counts['D'] / total * 1000))}")
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/real_reads
+python3 ../scripts/sub_ins_del.py training_reads.paf
 ```
-
 
 ```bash
 samtools stats training_reads.bam | awk -F '\t' '$1=="SN" && $2=="error rate:" {print $3}'
@@ -608,6 +592,14 @@ Per-base analysis:
 cd ~/2025-08_ONT_read_simulator_benchmark/analysis
 for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
     python3 ../scripts/per_base_qscores.py "$r".fastq ../reference.fasta "$r".paf > "$r".qscore_counts.tsv
+done
+```
+
+Sub:ins:del ratios:
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/analysis
+for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
+    python3 ../scripts/sub_ins_del.py "$r".paf
 done
 ```
 

@@ -483,6 +483,7 @@ read_accuracy_stats <- data %>%
     ),
     reported_mean = weighted.mean(reported_qscore_aligned_region[aligned], aligned_length[aligned]),
     reported_sd = weighted_sd(reported_qscore_aligned_region[aligned], aligned_length[aligned]),
+    unaligned_reads_percent = 100 * mean(!aligned),
     unaligned_bases_percent = 100 * (1 - sum(aligned_length) / sum(read_length)),
     .groups = "drop"
   ) %>%
@@ -493,10 +494,11 @@ read_accuracy_stats %>%
   knitr::kable(digits = 2)
 
 cat(sprintf(
-  "%s & %.2f & %.2f & %.2f & %.2f & %s \\\\",
+  "%s & %.2f & %.2f & %.2f & %.2f & %s & %s \\\\",
   read_accuracy_stats$tool,
   read_accuracy_stats$empirical_mean, read_accuracy_stats$empirical_sd,
   read_accuracy_stats$reported_mean, read_accuracy_stats$reported_sd,
+  paste0(sprintf("%.2f", read_accuracy_stats$unaligned_reads_percent), "\\%"),
   paste0(sprintf("%.2f", read_accuracy_stats$unaligned_bases_percent), "\\%")
 ), sep = "\n")
 ```

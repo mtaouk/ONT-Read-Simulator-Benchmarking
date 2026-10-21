@@ -51,7 +51,6 @@ def parse_paf_alignment(fields):
 
 
 def load_best_alignments(path):
-    """Keep the alignment with most matching bases per read; first wins ties."""
     best_alignments = {}
     with open_text(path) as handle:
         for line in handle:
