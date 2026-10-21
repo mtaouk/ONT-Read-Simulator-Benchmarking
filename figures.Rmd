@@ -503,6 +503,45 @@ cat(sprintf(
 ), sep = "\n")
 ```
 
+```{r read_accuracy_stats_q10_filter}
+# Filter by whole-read reported Q-score, matching chopper -q 10.
+# Summaries still use aligned-region Q-scores and aligned-length weights, as in Table S2.
+# Unaligned percentages use only the reads/bases retained after quality filtering.
+read_accuracy_stats_q10 <- data %>%
+  filter(reported_qscore_whole_read >= 10) %>%
+  group_by(tool) %>%
+  summarise(
+    empirical_mean = weighted.mean(
+      empirical_qscore_uncapped[aligned & is.finite(empirical_qscore_uncapped)],
+      aligned_length[aligned & is.finite(empirical_qscore_uncapped)]
+    ),
+    empirical_sd = weighted_sd(
+      empirical_qscore_uncapped[aligned & is.finite(empirical_qscore_uncapped)],
+      aligned_length[aligned & is.finite(empirical_qscore_uncapped)]
+    ),
+    reported_mean = weighted.mean(reported_qscore_aligned_region[aligned], aligned_length[aligned]),
+    reported_sd = weighted_sd(reported_qscore_aligned_region[aligned], aligned_length[aligned]),
+    unaligned_reads_percent = 100 * mean(!aligned),
+    unaligned_bases_percent = 100 * (1 - sum(aligned_length) / sum(read_length)),
+    .groups = "drop"
+  ) %>%
+  arrange(match(tool, c("Real reads", "Badread", "LongISLND", "lrsim", "NanoSim", "PBSIM3", "SimLoRD")))
+
+read_accuracy_stats_q10 %>%
+  mutate(across(ends_with("_percent"), ~ sprintf("%.2f%%", .x))) %>%
+  knitr::kable(digits = 2)
+
+# Add the error-type percentages from the Q10-filtered sub_ins_del.py commands in methods.md.
+cat(sprintf(
+  "%s & %.2f & %.2f & %.2f & %.2f & %s & %s \\\\",
+  read_accuracy_stats_q10$tool,
+  read_accuracy_stats_q10$empirical_mean, read_accuracy_stats_q10$empirical_sd,
+  read_accuracy_stats_q10$reported_mean, read_accuracy_stats_q10$reported_sd,
+  paste0(sprintf("%.2f", read_accuracy_stats_q10$unaligned_reads_percent), "\\%"),
+  paste0(sprintf("%.2f", read_accuracy_stats_q10$unaligned_bases_percent), "\\%")
+), sep = "\n")
+```
+
 ```{r figure_2, fig.width=7.87, fig.height=5.12}
 three_mer_files <- tribble(
   ~tool,        ~file,                     ~colour,           ~title_colour,

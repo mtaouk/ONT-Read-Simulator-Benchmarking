@@ -317,7 +317,6 @@ done
 Gather results in a table:
 ```bash
 cd ~/2025-08_ONT_read_simulator_benchmark/homopolymer_test
-
 {
     awk -F '\t' 'BEGIN {OFS="\t"} NR == 1 {print "tool", $1, $14, $15}' ../analysis/real.homopolymers/hp_correct_vs_len.txt
     awk -F '\t' 'BEGIN {OFS="\t"} NR > 1 {print "real", $1, $14, $15}' ../analysis/real.homopolymers/hp_correct_vs_len.txt
@@ -600,6 +599,19 @@ Sub:ins:del ratios:
 cd ~/2025-08_ONT_read_simulator_benchmark/analysis
 for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
     python3 ../scripts/sub_ins_del.py "$r".paf
+done
+```
+
+Sub:ins:del ratios (with a Q10 filter):
+```bash
+cd ~/2025-08_ONT_read_simulator_benchmark/analysis
+mkdir -p q10_filter
+for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
+    chopper -q 10 < "$r".fastq > q10_filter/"$r".fastq
+    conda activate mapping
+    minimap2 -t 32 -c --eqx ../reference.fasta q10_filter/"$r".fastq | grep "tp:A:P" > q10_filter/"$r".paf
+    conda deactivate
+    python3 ../scripts/sub_ins_del.py q10_filter/"$r".paf
 done
 ```
 
