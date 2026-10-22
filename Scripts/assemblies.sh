@@ -1,25 +1,34 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-OUTDIR="/home/taouk/ONT_read_sim/flye_assemblies"
-mkdir -p "$OUTDIR"
+# This script runs Flye, metaMDBG, miniasm, Myloasm and Raven assemblies, using Autocycler helper.
 
-declare -A reads=(
-  [Badread]="/home/taouk/ONT_read_sim/mapped_sim_reads/Badread.fastq.gz"
-  [LongISLND]="/home/taouk/ONT_read_sim/mapped_sim_reads/LongISLND.fastq.gz"
-  [lrsim]="/home/taouk/ONT_read_sim/mapped_sim_reads/lrsim.fastq.gz"
-  [NanoSim]="/home/taouk/ONT_read_sim/mapped_sim_reads/NanoSim.fastq.gz"
-  [PBSIM3]="/home/taouk/ONT_read_sim/mapped_sim_reads/PBSIM3.fastq.gz"
-  [simlord]="/home/taouk/ONT_read_sim/mapped_sim_reads/simlord.fastq.gz"
-  [real]="/home/taouk/ONT_read_sim/mapped_sim_reads/real.fastq.gz"
-)
+# Ensure script exits on error.
+set -e
 
-for name in "${!reads[@]}"; do
-  echo "Assembling $name..."
-  flye \
-    --nano-hq \
-    "${reads[$name]}" \
-    -o "$OUTDIR/$name" \
-    --threads 30 &
+# Get arguments.
+reads=$1                 # input reads FASTQ
+threads=$2               # threads per job
+jobs=$3                  # number of simultaneous jobs
+
+# Input assembly jobs that exceed this time limit will be killed
+max_time="4h"
+
+# Validate input parameters
+if [[ -z "$reads" || -z "$threads" || -z "$jobs" ]]; then
+    echo "Usage: $0 <read_fastq> <threads> <jobs> [read_type]" 1>&2
+    exit 1
+fi
+if [[ ! -f "$reads" ]]; then
+    echo "Error: Input file '$reads' does not exist." 1>&2
+    exit 1
+fi
+if (( threads > 100 )); then threads=100; fi  # Autocycler won't work with more than 100 threads
+
+mkdir -p assemblies
+rm -f assemblies/jobs.txt
+for assembler in raven myloasm miniasm flye metamdbg; do
+    echo "autocycler helper $assembler --reads $reads --out_prefix assemblies/$assembler --threads $threads --min_depth_rel 0.1" >> assemblies/jobs.txt
 done
-
-wait
+set +e
+nice -n 19 parallel --jobs "$jobs" --joblog assemblies/joblog.tsv --results assemblies/logs --timeout "$max_time" < assemblies/jobs.txt
+set -e

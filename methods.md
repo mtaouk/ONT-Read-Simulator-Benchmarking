@@ -371,10 +371,11 @@ Whenever I had to combine multiple FASTQs together, I shuffle them like this: `t
 
 https://github.com/BirolLab/NanoSim
 
-* `-hp` enables homopolymer length simulation.
-* `-k 5` sets the minimum homopolymer length where expansion/contraction will be applied. Chosen because the help text says 'a typical k is 5'
+Parameters:
+* `--fastq` is to get FASTQ reads (the default is FASTA).
 * `-x 100` to get 100x read depth.
 * `-t 16` is the thread count.
+* Note that I did _not_ use `-dna_type circular` because that feature does not support multi-sequence references. I.e. will fail because the reference has a chromosome and a plasmid.
 
 ```bash
 cd ~/2025-08_ONT_read_simulator_benchmark
@@ -689,13 +690,13 @@ parallel -j 32 < subsample_commands.txt
 rm subsample_commands.txt
 ```
 
-Assemble each with a simple Autocycler pipeline:
+Assemble each using Flye, metaMDBG, miniasm, Myloasm and Raven:
 ```bash
 conda activate autocycler
 for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
     for d in {01..50}; do
         cd ~/2025-08_ONT_read_simulator_benchmark/assemblies/"$r"/"$d"
-        /home/wickr/2025-08_ONT_read_simulator_benchmark/scripts/autocycler_simple.sh reads.fastq 16 5
+        /home/wickr/2025-08_ONT_read_simulator_benchmark/scripts/assemblies.sh reads.fastq 16 5
     done
 done
 ```
@@ -712,11 +713,8 @@ cd ~/2025-08_ONT_read_simulator_benchmark/assemblies
 printf "sim_tool\tdepth\tassembler\tassembly_size\tassembly_contigs\tassembly_n50\tcoverage\tidentity_whole\tidentity_trimmed\tcomplete\n" > assemblies.tsv
 for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
     for d in {01..50}; do
-        for a in flye metamdbg miniasm myloasm raven autocycler; do
+        for a in flye metamdbg miniasm myloasm raven; do
             assembly="$r/$d/assemblies/$a.fasta"
-            if [[ "$a" == autocycler ]]; then
-                assembly="$r/$d/autocycler_out/consensus_assembly.fasta"
-            fi
             rm -f alignments_whole.paf alignments_trimmed.paf assembly_trimmed.fasta
             if [[ -s "$assembly" ]]; then
                 minimap2 -c --eqx ../doubled_reference.fasta "$assembly" > alignments_whole.paf
