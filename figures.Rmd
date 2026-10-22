@@ -1296,9 +1296,8 @@ figure_s6
 assembler_shapes <- c(flye = 15, metamdbg = 13, miniasm = 28, myloasm = 11, raven = 23)
 assembler_labels <- c("Flye", "metaMDBG", "miniasm", "myloasm", "Raven")
 
-assembly_points <- read_tsv("results/assemblies.tsv", show_col_types = FALSE) %>%
-  filter(!is.na(identity_trimmed)) %>%
-  filter(assembler != "autocycler") %>%
+assembly_results <- read_tsv("results/assemblies.tsv", show_col_types = FALSE) %>%
+  filter(assembler %in% names(assembler_shapes)) %>%
   mutate(
     depth = as.integer(depth),
     assembler = factor(assembler, levels = names(assembler_shapes)),
@@ -1308,8 +1307,22 @@ assembly_points <- read_tsv("results/assemblies.tsv", show_col_types = FALSE) %>
     tool = factor(tool, levels = names(homopolymer_colours))
   )
 
-# Linear through Q60, then smoothly approach position 65 as Q approaches infinity.
-# The Q60-to-infinity interval is half the spacing of the other ticks.
+# Include all assembly attempts at 20--50x, even those without a plotted accuracy.
+assembly_completeness <- assembly_results %>%
+  filter(depth >= 20, depth <= 50) %>%
+  group_by(tool) %>%
+  summarise(
+    complete_assemblies = sum(complete),
+    total_assemblies = n(),
+    complete_percent = 100 * complete_assemblies / total_assemblies,
+    .groups = "drop"
+  )
+
+assembly_completeness %>% knitr::kable(digits = 1)
+
+assembly_points <- assembly_results %>%
+  filter(!is.na(identity_trimmed))
+
 assembly_identity_transform <- new_transform(
   "assembly_identity",
   transform = function(identity) {
@@ -1332,9 +1345,10 @@ assembly_identity_panel <- function(tool_name) {
   outline <- unname(homopolymer_outline_colours[tool_name])
   ggplot(panel_data, aes(x = depth, y = identity_trimmed)) +
     ggstar::geom_star(
-      aes(starshape = assembler),
-      fill = colour, colour = outline, size = 2, starstroke = 0.4
+      aes(starshape = assembler, fill = complete),
+      colour = outline, size = 2, starstroke = 0.7
     ) +
+    scale_fill_manual(values = c("TRUE" = colour, "FALSE" = NA_character_), guide = "none") +
     scale_starshape_manual(values = assembler_shapes, labels = assembler_labels,
                            name = "Assembler", drop = FALSE) +
     scale_x_continuous(limits = c(0, 50), breaks = seq(0, 50, 10), minor_breaks = NULL) +
