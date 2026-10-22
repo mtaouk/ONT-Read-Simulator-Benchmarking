@@ -411,7 +411,7 @@ SimLoRD & 14.77 & 3.97 & 14.64 & 4.03 & 44.4\% & 17.9\% & 37.7\% & 0.90\% & 0.05
 \begin{table}[!htbp]
 \centering
 \scriptsize
-\caption[Read accuracy and alignment statistics after Q10 filtering]{\textbf{Read accuracy and alignment statistics after Q10 filtering.} This table contains the same data as Table \ref{tab:supp_read_accuracy}, but after reads with a reported Q-score of <10 removed.}
+\caption[Read accuracy and alignment statistics after Q10 filtering]{\textbf{Read accuracy and alignment statistics after Q10 filtering.} This table contains the same data as Table \ref{tab:supp_read_accuracy}, but after reads with a reported Q-score of <10 are removed.}
 \label{tab:supp_read_accuracy_q10}
 \renewcommand{\arraystretch}{1.15}
 \begin{tabular}{
@@ -445,11 +445,13 @@ SimLoRD & 15.53 & 3.53 & 15.43 & 3.54 & 43.1\% & 17.8\% & 39.1\% & 0.50\% & 0.02
 \begin{table}[!htbp]
 \centering
 \scriptsize
-\caption[Distances between simulated-read and real-read distributions]{\textbf{Distances between simulated-read and real-read distributions.} Distance metrics comparing the simulated reads to the real reads for the following distributions: read length (Figure \ref{fig:supp_read_length}), empirical read Q-score (Figure \ref{fig:read_qscores} y-axis), reported read Q-score (Figure \ref{fig:read_qscores} x-axis), correct base Q-score (Figure \ref{fig:supp_qscore_correct_bases}), error base Q-score (Figure \ref{fig:supp_qscore_incorrect_bases}), 3-mer substitutions (Figure \ref{fig:3mer_subs}) and homopolymer length errors (Figure \ref{fig:homopolymer_errors}). Smaller values indicate a closer match between the simulated-read and real-read distributions, and a value of zero would indicate perfect agreement.
+\caption[Distances between simulated-read and real-read distributions]{\textbf{Distances between simulated-read and real-read distributions.} Distance metrics comparing the simulated reads to the real reads for the following distributions: read length (Figure \ref{fig:supp_read_length}), empirical read Q-score (Figure \ref{fig:read_qscores} y-axis), reported read Q-score (Figure \ref{fig:read_qscores} x-axis), correct base Q-score (Figure \ref{fig:supp_qscore_correct_bases}), error base Q-score (Figure \ref{fig:supp_qscore_incorrect_bases}), 3-mer substitutions (Figure \ref{fig:3mer_subs}) and homopolymer length errors (Figure \ref{fig:homopolymer_errors}).
 \par\smallskip
 For the read length and Q-score distributions, the values are Wasserstein-1 distances. Read lengths are weighted by full read length, and read Q-scores are weighted by aligned read length. Reported read Q-scores are calculated over the aligned interval, and reads without any errors in their alignments have an empirical Q-score of Q$\infty$ and were therefore excluded from the empirical Q-score distance.
 \par\smallskip
 For the 3-mer substitutions and homopolymer-length errors, the values are mean absolute errors (MAE). For the 3-mer substitutions, these were calculated in log$_{10}$ space to match the plots in Figure \ref{fig:3mer_subs}. For the homopolymer-length errors, 10-mers were excluded due to their low frequency (Table \ref{tab:supp_homopolymer_counts}).
+\par\smallskip
+Units for the distances are as follows. Read-length distances are expressed in bp, Q-score distances in Phred-score units, 3-mer substitution MAEs in log$_{10}$ units, and homopolymer-error MAEs in percentage points. Smaller values indicate a closer match between the simulated-read and real-read distributions, and a value of zero would indicate perfect agreement.
 }
 \label{tab:supp_distance_metrics}
 \renewcommand{\arraystretch}{1.15}
@@ -467,17 +469,17 @@ For the 3-mer substitutions and homopolymer-length errors, the values are mean a
 \makecell[r]{\textbf{3-mer}\\\textbf{substi-}\\\textbf{tutions}} &
 \makecell[r]{\textbf{Homo-}\\\textbf{polymer}\\\textbf{errors}} \\
 \midrule
-Badread & 3381.92 & 1.54 & 3.47 & 0.69 & 4.57 & 0.161 & 3.40 \\
+Badread & 3382 & 1.54 & 3.47 & 0.69 & 4.57 & 0.161 & 3.40 \\
 \midrule
-LongISLND & 2264.51 & 6.34 & 6.68 & 0.71 & 7.62 & 0.332 & 4.46 \\
+LongISLND & 2265 & 6.34 & 6.68 & 0.71 & 7.62 & 0.332 & 4.46 \\
 \midrule
-lrsim & 2413.46 & 3.55 & 7.01 & 23.98 & 7.70 & 0.652 & 5.87 \\
+lrsim & 2413 & 3.55 & 7.01 & 23.98 & 7.70 & 0.652 & 5.87 \\
 \midrule
-NanoSim & 2484.42 & 4.83 & 5.49 & 9.16 & 8.07 & 0.547 & 4.90 \\
+NanoSim & 2484 & 4.83 & 5.49 & 9.16 & 8.07 & 0.547 & 4.90 \\
 \midrule
-PBSIM3 & 2430.03 & 0.92 & 0.07 & 0.10 & 0.51 & 0.541 & 4.22 \\
+PBSIM3 & 2430 & 0.92 & 0.07 & 0.10 & 0.51 & 0.541 & 4.22 \\
 \midrule
-SimLoRD & 2570.21 & 4.43 & 4.74 & 22.02 & 4.60 & 0.720 & 8.98 \\
+SimLoRD & 2570 & 4.43 & 4.74 & 22.02 & 4.60 & 0.720 & 8.98 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -585,7 +587,7 @@ Despite intending to improve the realism of homopolymer-length errors, this mode
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.8\textwidth]{figure_s2.pdf}
-\caption[PBSIM3 homopolymer modes]{\textbf{PBSIM3 homopolymer modes.} PBSIM3 contains a \texttt{-{}-hp-del-bias} option which aims to simulate homopolymer deletion bias in ONT reads. To test this, we ran PBSIM3 using \texttt{-{}-hp-del-bias} \textit{h} using values of \textit{h} ranging from 1--10 (the full range for this option). While higher values of \textit{h} did produce more errors in longer homopolymers, it did not reproduce the inflection of the curve seen with the real reads. For the main results in this manuscript, we used \texttt{-{}-hp-del-bias 5} since that minimised the discrepancy between the real read's homopolymer errors and PBSIM3's homopolymer errors (weighting the discrepancy using homopolymer occurrences).}
+\caption[PBSIM3 homopolymer modes]{\textbf{PBSIM3 homopolymer modes.} PBSIM3 contains a \texttt{-{}-hp-del-bias} option which aims to simulate homopolymer deletion bias in ONT reads. To test this, we ran PBSIM3 using \texttt{-{}-hp-del-bias} \textit{h} using values of \textit{h} ranging from 1--10 (the full range for this option). While higher values of \textit{h} did produce more errors in longer homopolymers, it did not reproduce the inflection of the curve seen with the real reads. For the main results in this manuscript, we used \texttt{-{}-hp-del-bias 5} since that minimised the discrepancy between the real reads' homopolymer errors and PBSIM3's homopolymer errors (weighting the discrepancy using homopolymer occurrences).}
 \label{fig:supp_pbsim3_homopolymers}
 \end{figure}
 
