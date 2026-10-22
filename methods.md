@@ -613,6 +613,7 @@ for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
     conda deactivate
     python3 ../scripts/sub_ins_del.py q10_filter/"$r".paf
 done
+rm -r q10_filter
 ```
 
 
