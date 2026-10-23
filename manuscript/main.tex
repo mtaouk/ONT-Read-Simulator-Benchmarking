@@ -118,19 +118,6 @@ To examine how well simulated reads assemble, we generated random subsets of eac
 
 \section{Results}
 
-\subsection{Characteristics of real ONT reads}
-
-The real ONT reads had a mean empirical read Q-score of 19.0 and a mean reported read Q-score of 19.2 (Table \ref{tab:supp_read_accuracy}). Read errors were 40.1\% substitutions, 18.9\% insertions and 41.0\% deletions. The 3-mer substitution rates ranged from 0.0059\% for \texttt{CTG}→\texttt{CGG} to 3.6\% for \texttt{CGA}→\texttt{CAA}. Indel errors were especially common in longer homopolymers, with 9-bp homopolymers containing an error 35.6\% of the time.
-
-The per-base reported Q-scores ranged from 1 (predicted error rate of 79.4\%) to 50 (predicted error rate of 0.001\%). At a per-base level, these reported Q-scores were not perfectly calibrated, e.g. Q50 bases were incorrect (or associated with an adjacent deletion) 0.0157\% of the time, equivalent to Q38. However, at the whole-read level (averaging all bases), reported and empirical Q-scores generally showed good agreement.
-
-In this study, we retained all reads assigned to the sample during demultiplexing, without applying an additional quality-based filter. This revealed a distinctive bimodal distribution in both empirical and reported Q-scores, with a small peak at $\sim$Q8 and a larger peak at $\sim$Q23. Bimodal distributions of read Q-scores have been previously observed in ONT datasets\cite{formenti2025evaluation}, but the lower peak may be absent from quality-filtered ONT datasets, e.g. those restricted to reads classified as ``pass'' by ONT's MinKNOW software.
-
-
-\subsection{Simulator design and training strategies}
-
-The six evaluated read simulators (Badread, LongISLND, lrsim, NanoSim, PBSIM3 and SimLoRD) differ in how they model read length, sequence errors and Q-scores (Table~\ref{tab:simulators})\cite{wick2019badread, lau2016longislnd, lrsim, yang2017nanosim, ono2022pbsim3, stocker2016simlord}. Badread uses parametric read length and identity distributions, with trained \textit{k}-mer error and Q-score models. LongISLND uses a non-parametric model that samples bases and Q-scores from training reads with matching extended-\textit{k}-mer contexts. lrsim uses a model derived from alignment statistics for read lengths and indel-size structure, with user-specified overall error parameters. NanoSim fits read length, alignment, Q-score and error distributions from aligned reads, using Markov models for error structure. PBSIM3 was run in sample mode, where it copies read lengths and Q-score strings from real reads and uses a user-specified error-type ratio. SimLoRD is based on a PacBio circular consensus sequencing (CCS) model, with read accuracy depending on the number of sequencing passes. To approximate ONT reads, we restricted it to a single pass, sampled read lengths from the training reads and manually specified error parameters.
-
 \begin{table*}[t]
 \centering
 \small
@@ -196,12 +183,13 @@ Sampled & Parametric & Constant per read \\
 \vspace{1.0\baselineskip}
 \end{table*}
 
+\subsection{Characteristics of real ONT reads}
 
-\subsection{Read length distribution}
+The real ONT reads had a mean empirical read Q-score of 19.0 and a mean reported read Q-score of 19.2 (Table \ref{tab:supp_read_accuracy}). Read errors were 40.1\% substitutions, 18.9\% insertions and 41.0\% deletions. The 3-mer substitution rates ranged from 0.0059\% for \texttt{CTG}→\texttt{CGG} to 3.6\% for \texttt{CGA}→\texttt{CAA}. Indel errors were especially common in longer homopolymers, with 9-bp homopolymers containing an error 35.6\% of the time.
 
-LongISLND, lrsim, NanoSim, PBSIM3 and SimLoRD all used the training reads to model or sample read lengths, allowing them to approximate the empirical ONT read length distribution. Therefore, their simulated read length distributions were similar to those of the real reads (Table \ref{tab:supp_read_stats} and Figure \ref{fig:supp_read_length}).
+The per-base reported Q-scores ranged from 1 (predicted error rate of 79.4\%) to 50 (predicted error rate of 0.001\%). At a per-base level, these reported Q-scores were not perfectly calibrated, e.g. Q50 bases were incorrect (or associated with an adjacent deletion) 0.0157\% of the time, equivalent to Q38. However, at the whole-read level (averaging all bases), reported and empirical Q-scores generally showed good agreement.
 
-In contrast, Badread generates read lengths from a gamma distribution defined by mean read length and standard deviation. It was therefore the only tool which did not closely replicate the empirical distribution.
+In this study, we retained all reads assigned to the sample during demultiplexing, without applying an additional quality-based filter. This revealed a distinctive bimodal distribution in both empirical and reported Q-scores, with a small peak at $\sim$Q8 and a larger peak at $\sim$Q23. Bimodal distributions of read Q-scores have been previously observed in ONT datasets\cite{formenti2025evaluation}, but the lower peak may be absent from quality-filtered ONT datasets, e.g. those restricted to reads classified as ``pass'' by ONT's MinKNOW software.
 
 
 \subsection{Empirical and reported Q-score distributions}
@@ -222,16 +210,30 @@ All other tools departed from the real-read Q-score distributions. Badread had a
 When Q-scores were analysed at the per-base level rather than the whole-read level, PBSIM3 was again the most realistic simulator. Badread, LongISLND and PBSIM3 all broadly reproduced the distribution of reported base Q-scores for correctly called bases (Figure \ref{fig:supp_qscore_correct_bases}), but only PBSIM3 also closely matched the distribution of reported base Q-scores for error-associated bases (Figure \ref{fig:supp_qscore_incorrect_bases}) and the Q-score calibration curve (Figure \ref{fig:supp_qscore_calibration}).
 
 
-\subsection{Error profiles}
-
-Errors in the real reads were strongly context dependent: the 192 3-mer substitution error rates spanned nearly three orders of magnitude, from 0.0059\% to 3.6\% (Figure \ref{fig:3mer_subs}). This is because in ONT sequencing's raw-current signal (the ``squiggle''), some \textit{k}-mers produce less distinct signals and are therefore more prone to basecalling errors\cite{krishnakumar2018systematic}. Badread and LongISLND were the only simulators to reproduce this broad pattern, although both produced elevated error rates for substitution types that were rare in the real reads. In contrast, lrsim, NanoSim, PBSIM3 and SimLoRD produced roughly uniform error rates across all 3-mer substitution types, failing to reproduce the context-specific errors seen in the real reads.
-
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.84\textwidth]{figure_2.pdf}
 \caption[Substitution rates by 3-mer context]{\textbf{Substitution rates by 3-mer context.} Simulated vs real error rates for the 192 distinct 3-mer substitution types, in which only the middle base changes. Each point represents one 3-mer substitution. Real-read error rates range from 0.0059\% (\texttt{CTG}→\texttt{CGG}) to 3.6\% (\texttt{CGA}→\texttt{CAA}). A simulator is more realistic if the points lie close to the diagonal dashed line of equality. Mean absolute error distances to quantify the difference in distributions are in Table \ref{tab:supp_distance_metrics}.}
 \label{fig:3mer_subs}
 \end{figure*}
+
+
+
+\subsection{Simulator design and training strategies}
+
+The six evaluated read simulators (Badread, LongISLND, lrsim, NanoSim, PBSIM3 and SimLoRD) differ in how they model read length, sequence errors and Q-scores (Table~\ref{tab:simulators})\cite{wick2019badread, lau2016longislnd, lrsim, yang2017nanosim, ono2022pbsim3, stocker2016simlord}. Badread uses parametric read length and identity distributions, with trained \textit{k}-mer error and Q-score models. LongISLND uses a non-parametric model that samples bases and Q-scores from training reads with matching extended-\textit{k}-mer contexts. lrsim uses a model derived from alignment statistics for read lengths and indel-size structure, with user-specified overall error parameters. NanoSim fits read length, alignment, Q-score and error distributions from aligned reads, using Markov models for error structure. PBSIM3 was run in sample mode, where it copies read lengths and Q-score strings from real reads and uses a user-specified error-type ratio. SimLoRD is based on a PacBio circular consensus sequencing (CCS) model, with read accuracy depending on the number of sequencing passes. To approximate ONT reads, we restricted it to a single pass, sampled read lengths from the training reads and manually specified error parameters.
+
+
+\subsection{Read length distribution}
+
+LongISLND, lrsim, NanoSim, PBSIM3 and SimLoRD all used the training reads to model or sample read lengths, allowing them to approximate the empirical ONT read length distribution. Therefore, their simulated read length distributions were similar to those of the real reads (Table \ref{tab:supp_read_stats} and Figure \ref{fig:supp_read_length}).
+
+In contrast, Badread generates read lengths from a gamma distribution defined by mean read length and standard deviation. It was therefore the only tool which did not closely replicate the empirical distribution.
+
+
+\subsection{Error profiles}
+
+Errors in the real reads were strongly context dependent: the 192 3-mer substitution error rates spanned nearly three orders of magnitude, from 0.0059\% to 3.6\% (Figure \ref{fig:3mer_subs}). This is because in ONT sequencing's raw-current signal (the ``squiggle''), some \textit{k}-mers produce less distinct signals and are therefore more prone to basecalling errors\cite{krishnakumar2018systematic}. Badread and LongISLND were the only simulators to reproduce this broad pattern, although both produced elevated error rates for substitution types that were rare in the real reads. In contrast, lrsim, NanoSim, PBSIM3 and SimLoRD produced roughly uniform error rates across all 3-mer substitution types, failing to reproduce the context-specific errors seen in the real reads.
 
 Homopolymer error rates in the real ONT reads rose at an increasing rate as homopolymers became longer (Figure \ref{fig:homopolymer_errors}). LongISLND reproduced this overall pattern most closely, although its curve showed an abrupt drop in error rate from 4-mer to 5-mer homopolymers due to a switch from per-base to whole-homopolymer sampling. All other tools reproduced this curvature poorly, with error rates that increased linearly with homopolymer length.
 
