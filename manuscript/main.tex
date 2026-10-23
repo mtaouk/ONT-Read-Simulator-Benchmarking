@@ -86,7 +86,7 @@ A literature search identified seven long‑read simulators compatible with ONT 
 
 
 \subsection{Reference data}
-Real ONT reads used as the empirical benchmark were generated from \textit{Listeria innocua} strain AUSMDU00097349 (accession \href{https://www.ncbi.nlm.nih.gov/biosample/SAMN46906078}{SAMN46906078}) on an ONT R10.4.1 PromethION flow cell and basecalled with Dorado v1.1.1\cite{dorado} using the \texttt{dna\_r10.4.1\_e8.2\_400bps\_sup@v5.2.0} basecalling model, the latest available for this chemistry at the time of analysis. Reads were demultiplexed using the \texttt{dorado demux} with default parameters using the built-in \texttt{SQK-RBK114-96} kit barcodes, and reads assigned to barcode 5 (corresponding to the \textit{L. innocua} sample) were retained. The demultiplexing step incidentally excludes some poor-quality reads with absent or unrecognisable barcodes, but no explicit Q-score or length filtering was applied.
+Real ONT reads used as the empirical benchmark were generated from \textit{Listeria innocua} strain AUSMDU00097349 (accession \href{https://www.ncbi.nlm.nih.gov/biosample/SAMN46906078}{SAMN46906078}) on an ONT R10.4.1 PromethION flow cell and basecalled with Dorado v1.1.1\cite{dorado} using the \texttt{dna\_r10.4.1\_e8.2\_400bps\_sup@v5.2.0} basecalling model, the latest available for this chemistry at the time of analysis. Reads were demultiplexed using \texttt{dorado demux} with default parameters and the built-in \texttt{SQK-RBK114-96} kit barcodes, and reads assigned to barcode 5 (corresponding to the \textit{L. innocua} sample) were retained. The demultiplexing step excludes some low-quality reads with absent or unrecognisable barcodes, but no explicit Q-score or length filtering was applied.
 
 The real read set comprised 680,482 reads with a total length of 3,803 Mbp, mean length of 5,588 bp and N50 length of 8,923 bp. The reads were split into two non-overlapping sets: a test set of 53,093 randomly selected reads (chosen to total 100$\times$ depth) and a training set containing the remaining 627,389 reads. The test set was used to evaluate real-read properties, while the training set was used to train simulators.
 
@@ -94,25 +94,25 @@ Simulated reads were generated from a complete, closed assembly of the same \tex
 
 
 \subsection{Simulator configuration}
-Each simulator was configured to maximise the realism of generated reads. For simulators with explicit training or model-building steps (Badread, LongISLND, lrsim and NanoSim), models were built from the real read training set, using alignments to the reference genome where required. PBSIM3 was run in its sampling mode, using real training reads as the source of read lengths and FASTQ quality strings, and SimLoRD was configured to sample read lengths from the training reads. For options controlling overall error rate, error variability or error-type ratios, we used values estimated from the training reads. For NanoSim and PBSIM3, we tested various homopolymer modelling options (Figures \ref{fig:supp_nanosim_homopolymers} and \ref{fig:supp_pbsim3_homopolymers}) and used the settings which best matched the real reads: disabled homopolymer length simulation in NanoSim, and \texttt{-{}-hp-del-bias 5} in PBSIM3. All tools were set to generate read sets of 100$\times$ depth ($\sim$300 Mbp).
+Each simulator was configured to maximise the realism of generated reads. For simulators with explicit training or model-building steps (Badread, LongISLND, lrsim and NanoSim), models were built from the real read training set, using alignments to the reference genome where required. PBSIM3 was run in its sampling mode, using training reads as the source of read lengths and FASTQ quality strings, and SimLoRD was configured to sample read lengths from the training reads. For options controlling overall error rate, error variability or error-type ratios, we used values estimated from the training reads. For NanoSim and PBSIM3, we tested various homopolymer modelling options (Figures \ref{fig:supp_nanosim_homopolymers} and \ref{fig:supp_pbsim3_homopolymers}) and used the settings which best matched the real reads: disabled homopolymer length simulation in NanoSim, and \texttt{-{}-hp-del-bias 5} in PBSIM3. All tools were set to generate read sets of 100$\times$ depth ($\sim$300 Mbp).
 
-Each simulator tool was run through GNU Time to quantify its time to run. For tools with separate training and simulation steps, these were measured separately. lrsim (simulation step) and NanoSim support multithreading and were run using 16 threads. Badread, LongISLND, lrsim (training step), PBSIM3 and SimLoRD do not support multithreading and were therefore run with one thread.
+Each simulator tool was run through GNU Time to quantify its time to run and memory usage. For tools with distinct training and simulation steps, these were measured separately. lrsim (simulation step) and NanoSim support multithreading and were run using 16 threads. Badread, LongISLND, lrsim (training step), PBSIM3 and SimLoRD do not support multithreading.
 
 Exact commands are documented in Supplementary Methods (methods.md) and are publicly available in the \href{https://github.com/mtaouk/ONT-Read-Simulator-Benchmarking}{accompanying GitHub repository}.
 
 
 \subsection{Evaluation metrics}
-Simulated and real test reads were compared across multiple read-level and base-level metrics to assess realism. We did not rely on formal statistical tests, because with datasets of this size, even trivial differences can be statistically significant. Instead, we compared the shapes of distributions and the relationships between variables in simulated and real data, which provides a more direct and interpretable measure of realism. We quantified discrepancies in read-length and Q-score distributions using the Wasserstein-1 distance, calculated as the integral of the absolute difference between their normalised weighted cumulative distribution functions (Table \ref{tab:supp_distance_metrics}).
+Simulated and real test reads were compared across multiple read-level and base-level metrics to assess realism. We did not rely on formal statistical tests, because with datasets of this size, even trivial differences can be statistically significant. Instead, we compared the shapes of distributions and the relationships between variables in simulated and real data, which provides a more direct and interpretable measure of realism. We quantified differences between real and simulated reads using Wasserstein distances and mean absolute errors (Table \ref{tab:supp_distance_metrics}).
 
 Read lengths were extracted from FASTQ files and summarised using seqkit v2.13.0\cite{shen2016seqkit}. Read length distributions were visualised as histograms using the same bin widths and axis limits across all datasets to enable direct visual comparison.
 
-Real and simulated reads were aligned to the reference genome using minimap2 v2.30\cite{li2018minimap2}. Secondary alignments were removed, and identity was then calculated as the number of matching bases divided by the alignment length. This is the ``BLAST identity'' approach to measuring sequence similarity, where the impact of insertions and deletions is proportional to their length (e.g. a 5-bp deletion affects identity the same as five 1-bp deletions)\cite{li2018identity}. Empirical read Q-scores were computed as $Q = -10 \times \log_{10}(1 - \text{identity})$ for each read. Reported read Q-scores were calculated by converting each Phred-scaled quality value in the FASTQ file to an error probability, averaging those probabilities across the aligned portion of the read and then converting back to a Q-score.
+Real and simulated reads were aligned to the reference genome using minimap2 v2.30\cite{li2018minimap2}. Secondary alignments were removed, and identity was then calculated as the number of matching bases divided by the alignment length. This is the ``BLAST identity'' definition where each inserted or deleted base contributes equally to the error count\cite{li2018identity}. Empirical read Q-scores were computed as $Q = -10 \times \log_{10}(1 - \text{identity})$ for each read. Reported read Q-scores were calculated by converting each Phred-scaled quality value in the FASTQ file to an error probability, averaging those probabilities across the aligned portion of the read and then converting back to a Q-score.
 
 To examine FASTQ Q-scores at the per-base level, each base was classified from the alignment as a match, mismatch or insertion, then grouped by its reported FASTQ Q-score. Because deletions have no corresponding read base and therefore no Q-score, they were represented indirectly by adjacent matching bases counted at half weight. For each reported Q-score, we then calculated the observed error rate from the counts of mismatches, insertions and deletion-associated bases, and used these values to generate calibration plots.
 
-To characterise the error profiles of the real and simulated reads, we analysed two specific error types: 3-mer substitutions and homopolymer lengths. For 3-mer substitutions, we counted substitutions on the sequenced strand in which the middle base differed and the immediate flanking bases matched, for which there are 192 possibilities. The rate of each was expressed as the number of observed substitutions divided by the number of occurrences of the reference 3-mer in the aligned sequence. Homopolymer lengths of 3--10 bp were assessed using Pomoxis v0.3.16\cite{pomoxis}, and we defined error rate as the fraction of homopolymers in reads with an incorrect length. These analyses were not intended to capture all aspects of ONT sequencing errors, but instead provide two targeted, interpretable and directly comparable measures of error realism.
+To characterise the error profiles of the real and simulated reads, we analysed two specific error types: 3-mer substitutions and homopolymer lengths. For 3-mer substitutions, we counted substitutions on the sequenced strand in which the middle base differed and the immediate flanking bases matched, for which there are 192 possibilities. The rate of each was expressed as the number of observed substitutions divided by the number of occurrences of the reference 3-mer across all read alignments. Homopolymers were assessed using Pomoxis v0.3.16\cite{pomoxis}, and we defined error rate as the fraction of homopolymers in reads with an incorrect length. These analyses were not intended to capture all aspects of ONT sequencing errors, but instead provide two targeted, interpretable and directly comparable measures of error realism.
 
-To examine how well simulated reads assemble, we generated random subsets of each test read set ranging from 1$\times$ to 50$\times$ depth, in 1$\times$ increments. Each read set was assembled using Flye v2.9.6\cite{kolmogorov2019assembly}, metaMDBG v1.4\cite{benoit2026high}, miniasm v0.3\cite{li2016minimap} plus Minipolish v0.2.1, Myloasm v0.7.0\cite{shaw2026high} and Raven v1.8.3\cite{vaser2021time}. All assemblies were run via the helper command in Autocycler v0.8.0\cite{wick2025autocycler}. For assemblies that produced at least a 2 Mbp contig ($\sim2/3$ of the genome size), assembly accuracy was quantified using the longest contig's alignment identity to the reference genome.
+To examine how well simulated reads assemble, we generated random subsets of each test read set ranging from 1$\times$ to 50$\times$ depth, in 1$\times$ increments. Each read set was assembled using Flye v2.9.6\cite{kolmogorov2019assembly}, metaMDBG v1.4\cite{benoit2026high}, miniasm v0.3\cite{li2016minimap} plus Minipolish v0.2.1, myloasm v0.7.0\cite{shaw2026high} and Raven v1.8.3\cite{vaser2021time}. All assemblies were run via the helper command in Autocycler v0.8.0\cite{wick2025autocycler}. For assemblies that produced at least a 2 Mbp contig ($\sim2/3$ of the genome size), assembly accuracy was quantified using the longest contig's alignment identity to the reference genome.
 
 
 
@@ -122,14 +122,14 @@ To examine how well simulated reads assemble, we generated random subsets of eac
 
 The real ONT reads had a mean empirical read Q-score of 19.0 and a mean reported read Q-score of 19.2 (Table \ref{tab:supp_read_accuracy}). Read errors were 40.1\% substitutions, 18.9\% insertions and 41.0\% deletions. The 3-mer substitution rates ranged from 0.0059\% for \texttt{CTG}→\texttt{CGG} to 3.6\% for \texttt{CGA}→\texttt{CAA}. Indel errors were especially common in longer homopolymers, with 9-bp homopolymers containing an error 35.6\% of the time.
 
-The per-base reported Q-scores ranged from 1 (predicted error rate of 79.4\%) to 50 (predicted error rate of 0.001\% ). At a per-base level, these reported Q-scores were not perfectly calibrated, e.g. Q50 bases were incorrect (or associated with an adjacent deletion) 0.0157\% of the time, equivalent to Q38. However, at the whole-read level (averaging all bases), reported and empirical Q-scores generally showed good agreement.
+The per-base reported Q-scores ranged from 1 (predicted error rate of 79.4\%) to 50 (predicted error rate of 0.001\%). At a per-base level, these reported Q-scores were not perfectly calibrated, e.g. Q50 bases were incorrect (or associated with an adjacent deletion) 0.0157\% of the time, equivalent to Q38. However, at the whole-read level (averaging all bases), reported and empirical Q-scores generally showed good agreement.
 
-In this study, we did not apply a quality-based filter to the real reads, retaining all reads produced by the basecaller. This revealed a distinctive bimodal distribution in both empirical and reported Q-scores, with a small peak at $\sim$Q8 and a larger peak at $\sim$Q23. Bimodal distributions of read Q-scores have been previously observed in ONT datasets\cite{formenti2025evaluation}, but the lower peak may be absent from quality-filtered ONT datasets, e.g. those restricted to reads classified as ``PASS'' by ONT's MinKNOW software.
+In this study, we retained all reads assigned to the sample during demultiplexing, without applying an additional quality-based filter. This revealed a distinctive bimodal distribution in both empirical and reported Q-scores, with a small peak at $\sim$Q8 and a larger peak at $\sim$Q23. Bimodal distributions of read Q-scores have been previously observed in ONT datasets\cite{formenti2025evaluation}, but the lower peak may be absent from quality-filtered ONT datasets, e.g. those restricted to reads classified as ``pass'' by ONT's MinKNOW software.
 
 
 \subsection{Simulator design and training strategies}
 
-The six evaluated read simulators (Badread, LongISLND, lrsim, NanoSim, PBSIM3 and SimLoRD) differ in how they model read length, sequence errors and Q-scores (Table~\ref{tab:simulators})\cite{wick2019badread, lau2016longislnd, lrsim, yang2017nanosim, ono2022pbsim3, stocker2016simlord}. Badread uses parametric read length and identity distributions, with trained \textit{k}-mer error and Q-score models. LongISLND uses a non-parametric model that samples bases and Q-scores from training reads with matching extended-\textit{k}-mer contexts. lrsim uses a model derived from alignment statistics for read lengths and indel-size structure, with user-specified overall error parameters. NanoSim fits read length, alignment, Q-score and error distributions from aligned reads, using Markov models for error structure. PBSIM3 was run in sample mode, where it copies read lengths and Q-score strings from real reads and uses a user-specified error-type ratio. SimLoRD is based on a PacBio circular consensus sequencing (CCS) pass-count model; in this study, we disabled CCS-style behaviour to better approximate ONT sequencing, sampled read lengths from the training reads and supplied error parameters manually.
+The six evaluated read simulators (Badread, LongISLND, lrsim, NanoSim, PBSIM3 and SimLoRD) differ in how they model read length, sequence errors and Q-scores (Table~\ref{tab:simulators})\cite{wick2019badread, lau2016longislnd, lrsim, yang2017nanosim, ono2022pbsim3, stocker2016simlord}. Badread uses parametric read length and identity distributions, with trained \textit{k}-mer error and Q-score models. LongISLND uses a non-parametric model that samples bases and Q-scores from training reads with matching extended-\textit{k}-mer contexts. lrsim uses a model derived from alignment statistics for read lengths and indel-size structure, with user-specified overall error parameters. NanoSim fits read length, alignment, Q-score and error distributions from aligned reads, using Markov models for error structure. PBSIM3 was run in sample mode, where it copies read lengths and Q-score strings from real reads and uses a user-specified error-type ratio. SimLoRD is based on a PacBio circular consensus sequencing (CCS) model, with read accuracy depending on the number of sequencing passes. To approximate ONT reads, we restricted it to a single pass, sampled read lengths from the training reads and manually specified error parameters.
 
 \begin{table*}[t]
 \centering
@@ -157,7 +157,7 @@ The six evaluated read simulators (Badread, LongISLND, lrsim, NanoSim, PBSIM3 an
 \textbf{Q-scores} \\
 \midrule
 Badread &
-\makecell[l]{0.4.2\\(2024)} &
+\makecell[l]{0.4.2\\(2026)} &
 All long-read platforms &
 Draws fragment lengths from a gamma distribution and target accuracies from a normal or beta distribution. Introduces errors by replacing \textit{k}-mers according to a trained \textit{k}-mer alternative model, then assigns Q-scores based on the local alignment around each base. &
 Parametric & Trained & Trained \\
@@ -199,7 +199,7 @@ Sampled & Parametric & Constant per read \\
 
 \subsection{Read length distribution}
 
-LongISLND, lrsim, NanoSim, PBSIM3 and SimLoRD all used the training reads to model or sample read lengths, allowing them to approximate the empirical ONT read length distribution. Therefore, their simulated read length distributions were similar to the real reads (Table \ref{tab:supp_read_stats} and Figure \ref{fig:supp_read_length}).
+LongISLND, lrsim, NanoSim, PBSIM3 and SimLoRD all used the training reads to model or sample read lengths, allowing them to approximate the empirical ONT read length distribution. Therefore, their simulated read length distributions were similar to those of the real reads (Table \ref{tab:supp_read_stats} and Figure \ref{fig:supp_read_length}).
 
 In contrast, Badread generates read lengths from a gamma distribution defined by mean read length and standard deviation. It was therefore the only tool which did not closely replicate the empirical distribution.
 
@@ -209,44 +209,44 @@ In contrast, Badread generates read lengths from a gamma distribution defined by
 \begin{figure*}[t]
 \centering
 \includegraphics[width=1.0\textwidth]{figure_1.pdf}
-\caption[Empirical and reported read Q-scores]{\textbf{Empirical and reported read Q-scores.} In each panel, the central scatter plot shows each aligned read's reported Q-score (x-axis) and empirical Q-score (y-axis). The reported read Q-score was calculated from the FASTQ quality string by converting base Q-scores to error probabilities, averaging those probabilities across the read, and converting the mean error probability back to a Q-score. Only the aligned region of the read was used to calculate reported read Q-score. The empirical read Q-score was calculated from the read-to-reference alignment identity, converted to Q-score. The top y-axis tick is labelled $\infty$ because some reads contained no errors, giving an empirical error rate of zero and therefore an infinite empirical Q-score. The top marginal histogram for each panel shows the distribution of reported read Q-scores, and the right marginal histogram shows the distribution of empirical read Q-scores. Histogram bars are weighted by aligned read length, so the marginal axes represent the number of aligned read bases in each bin. A simulator is more realistic if its plot closely matches that of the real reads. Wasserstein distances to quantify the difference in distributions are available in Table \ref{tab:supp_distance_metrics}.}
+\caption[Empirical and reported read Q-scores]{\textbf{Empirical and reported read Q-scores.} In each panel, the central scatter plot shows each aligned read's reported Q-score (x-axis) and empirical Q-score (y-axis). The reported read Q-score was calculated from the FASTQ quality string by converting base Q-scores to error probabilities, averaging those probabilities across the aligned region of the read and converting the mean error probability back to a Q-score. The empirical read Q-score was calculated from the read-to-reference alignment identity, converted to Q-score. The top y-axis tick is labelled $\infty$ because some reads contained no errors, giving an empirical error rate of zero and therefore an infinite empirical Q-score. The top marginal histogram for each panel shows the distribution of reported read Q-scores, and the right marginal histogram shows the distribution of empirical read Q-scores. Histogram bars are weighted by aligned read length, so the marginal axes represent the number of aligned read bases in each bin. A simulator is more realistic if its plot closely matches that of the real reads. Wasserstein distances to quantify the difference in distributions are in Table \ref{tab:supp_distance_metrics}.}
 \label{fig:read_qscores}
 \end{figure*}
 
-Each read that could be aligned to the reference genome was assigned an empirical Q-score, indicating its true accuracy. Each read also had a reported Q-score calculated from its FASTQ quality values. Comparing the joint and marginal distributions of these two Q-scores therefore provided a direct visual measure of how closely each simulated dataset resembled the real reads. Summary statistics of the read accuracy distributions and alignments are in Table \ref{tab:supp_read_accuracy}, and metrics after removing reads with a reported Q-score of <10 are in Table \ref{tab:supp_read_accuracy_q10}.
+Each read that could be aligned to the reference genome was assigned an empirical Q-score, indicating its true accuracy. Each read also had a reported Q-score calculated from its FASTQ quality values. Comparing the joint and marginal distributions of these two Q-scores therefore provided a direct visual measure of how closely each simulated dataset resembled the real reads. Summary statistics of the read accuracy distributions and alignments are in Table \ref{tab:supp_read_accuracy}, and metrics after applying a quality filter (removing reads with a reported Q-score of <10) are in Table \ref{tab:supp_read_accuracy_q10}.
 
 Only PBSIM3 was able to closely reproduce the signature of the real reads, including their distinctive bimodal distribution with a lower peak at $\sim$Q8 and a higher peak at $\sim$Q23 (Figure \ref{fig:read_qscores}). This likely reflects PBSIM3's sampling-based strategy: it copies read lengths and per-base FASTQ quality strings from training reads, samples template sequences of matching length from the reference genome, and introduces errors according to the sampled Q-scores. PBSIM3's reads only departed from the real reads in a few subtle ways: the real read distributions extended to lower qualities than the PBSIM3 reads, and the real reads had more outliers where empirical and reported Q-scores were in stark disagreement (e.g. reported Q20 but empirical Q10).
 
 All other tools departed from the real-read Q-score distributions. Badread had a wide spread of empirical Q-scores, but its reported Q-scores rarely exceeded Q20. LongISLND produced very narrow distributions, with most reads in the Q14--15 range. lrsim produced a range of empirical Q-scores but did not model reported Q-scores at all, using the same Phred score character for every base in every read. NanoSim produced narrow distributions for both empirical and reported Q-scores. SimLoRD produced wide distributions, but it used only a single Phred score character in each read, leading to a discrete reported Q-score distribution.
 
-When Q-scores were analysed at the per-base level rather than the whole-read level, PBSIM3 was again the most realistic simulator. Badread, LongISLND and PBSIM3 all broadly reproduced the distribution of reported base Q-scores for correctly called bases (Figure \ref{fig:supp_qscore_correct_bases}), but only PBSIM3 also closely matched the distribution of reported base Q-scores for error-associated bases (Figure \ref{fig:supp_qscore_incorrect_bases}) and for the Q-score calibration curve (Figure \ref{fig:supp_qscore_calibration}).
+When Q-scores were analysed at the per-base level rather than the whole-read level, PBSIM3 was again the most realistic simulator. Badread, LongISLND and PBSIM3 all broadly reproduced the distribution of reported base Q-scores for correctly called bases (Figure \ref{fig:supp_qscore_correct_bases}), but only PBSIM3 also closely matched the distribution of reported base Q-scores for error-associated bases (Figure \ref{fig:supp_qscore_incorrect_bases}) and the Q-score calibration curve (Figure \ref{fig:supp_qscore_calibration}).
 
 
 \subsection{Error profiles}
 
-Errors in the real reads were strongly context dependent: the 192 3-mer substitution error rates spanned nearly three orders of magnitude, from 0.0059\% to 3.6\% (Figure \ref{fig:3mer_subs}). This is consistent with ONT sequencing's raw-current signal (the ``squiggle''), in which some \textit{k}-mers produce less distinct signals and are therefore more prone to basecalling errors\cite{krishnakumar2018systematic}. Badread and LongISLND were the only simulators to reproduce this broad pattern, although both produced elevated error rates for substitution types that were rare in the real reads. In contrast, lrsim, NanoSim, PBSIM3 and SimLoRD assigned roughly uniform error rates to all 3-mer substitution types, failing to reproduce the context-specific substitution errors seen in the real reads.
+Errors in the real reads were strongly context dependent: the 192 3-mer substitution error rates spanned nearly three orders of magnitude, from 0.0059\% to 3.6\% (Figure \ref{fig:3mer_subs}). This is because in ONT sequencing's raw-current signal (the ``squiggle''), some \textit{k}-mers produce less distinct signals and are therefore more prone to basecalling errors\cite{krishnakumar2018systematic}. Badread and LongISLND were the only simulators to reproduce this broad pattern, although both produced elevated error rates for substitution types that were rare in the real reads. In contrast, lrsim, NanoSim, PBSIM3 and SimLoRD produced roughly uniform error rates across all 3-mer substitution types, failing to reproduce the context-specific errors seen in the real reads.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.84\textwidth]{figure_2.pdf}
-\caption[Substitution rates by 3-mer context]{\textbf{Substitution rates by 3-mer context.} Simulated vs real error rates for the 192 distinct 3-mer substitution types, in which only the middle base changes. Each point represents one 3-mer substitution. Real-read error rates range from 0.0059\% (\texttt{CTG}→\texttt{CGG}) to 3.6\% (\texttt{CGA}→\texttt{CAA}). A simulator is more realistic if the points lie close to the diagonal dashed line of equality. Mean absolute error distances to quantify the difference in distributions are available in Table \ref{tab:supp_distance_metrics}.}
+\caption[Substitution rates by 3-mer context]{\textbf{Substitution rates by 3-mer context.} Simulated vs real error rates for the 192 distinct 3-mer substitution types, in which only the middle base changes. Each point represents one 3-mer substitution. Real-read error rates range from 0.0059\% (\texttt{CTG}→\texttt{CGG}) to 3.6\% (\texttt{CGA}→\texttt{CAA}). A simulator is more realistic if the points lie close to the diagonal dashed line of equality. Mean absolute error distances to quantify the difference in distributions are in Table \ref{tab:supp_distance_metrics}.}
 \label{fig:3mer_subs}
 \end{figure*}
 
-Homopolymer error rates in the real ONT reads rose at an increasing rate as homopolymers became longer (Figure \ref{fig:homopolymer_errors}). LongISLND reproduced this overall pattern most closely, although its curve showed an abrupt drop in error rate from 4-mer to 5-mer homopolymers due to a switch from per-base to whole-homopolymer sampling at length 5. All other tools reproduced this curvature poorly, with error rates that increased linearly with homopolymer length.
+Homopolymer error rates in the real ONT reads rose at an increasing rate as homopolymers became longer (Figure \ref{fig:homopolymer_errors}). LongISLND reproduced this overall pattern most closely, although its curve showed an abrupt drop in error rate from 4-mer to 5-mer homopolymers due to a switch from per-base to whole-homopolymer sampling. All other tools reproduced this curvature poorly, with error rates that increased linearly with homopolymer length.
 
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figure_3.pdf}
-\caption[Homopolymer error rates]{\textbf{Homopolymer error rates.} Homopolymer error rate as reported by Pomoxis, plotted as a function of homopolymer length for real reads and six ONT read simulators. Error rate is defined here as the fraction of reads in which the homopolymer length was not represented correctly. Observation counts and numbers of distinct reference loci are in Table \ref{tab:supp_homopolymer_counts}. Homopolymers of length 10 were excluded from this plot due to there being only two instances in the reference genome. A simulator is more realistic if its curve closely matches that of the real reads. Mean absolute error distances to quantify the difference in distributions are available in Table \ref{tab:supp_distance_metrics}.}
+\caption[Homopolymer error rates]{\textbf{Homopolymer error rates.} Homopolymer error rate as reported by Pomoxis, plotted as a function of homopolymer length. Error rate is defined as the fraction of reads in which the homopolymer length was not represented correctly. Observation counts and numbers of distinct reference loci are in Table \ref{tab:supp_homopolymer_counts}. Homopolymers of length 10 were excluded from this plot due to there being only two instances in the reference genome. A simulator is more realistic if its curve closely matches that of the real reads. Mean absolute error distances to quantify the difference in distributions are in Table \ref{tab:supp_distance_metrics}.}
 \label{fig:homopolymer_errors}
 \end{figure}
 
 
 \subsection{Assembly accuracy}
 
-Assembly accuracy vs read depth plots are in Figure \ref{fig:supp_assemblies}. For the real reads, assembly accuracy improved with depth, up to $\sim$30$\times$ depth. Assemblies of real reads only achieved perfect accuracy (zero errors) three times. Assemblies of LongISLND simulated reads best matched this pattern, however Raven assemblies of LongISLND reads had notably lower accuracy. Badread, lrsim, PBSIM3 and SimLoRD all produced assemblies that were too accurate (frequently with no detected errors), indicating poor or incomplete modelling of systematic errors in ONT reads. NanoSim simulated reads had strong assembler-specific effects, with Flye assemblies often having zero errors but metaMDBG assemblies were very low accuracy.
+Assembly accuracy vs read depth plots are in Figure \ref{fig:supp_assemblies}. For the real reads, assembly accuracy improved with depth (up to $\sim$30$\times$ depth), and only three assemblies had no detected errors. Assemblies of LongISLND simulated reads best matched this pattern, but Raven assemblies of LongISLND reads had notably lower accuracy. Badread, lrsim, PBSIM3 and SimLoRD all produced assemblies that were too accurate (frequently with no detected errors), indicating poor or incomplete modelling of systematic errors in ONT reads. NanoSim reads had markedly different results across assemblers, with high assembly accuracy for Flye but very low accuracy for metaMDBG.
 
 
 \subsection{Computational resources}
@@ -263,21 +263,21 @@ PBSIM3 performed strongly overall and was the most realistic simulator for sever
 
 Badread offers users parametric control over the simulated reads, which can be valuable when specific read-set properties are needed. This flexibility came at the expense of realism: its read length and accuracy distributions deviated from those of the real reads (Figures \ref{fig:supp_read_length} and \ref{fig:read_qscores}). Badread modelled substitution errors well (Figure \ref{fig:3mer_subs}) but captured homopolymer-length errors less well (Figure \ref{fig:homopolymer_errors}). Further, as Badread is implemented entirely in Python, it was slower to run than other tools.
 
-LongISLND performed well at modelling substitutions (Figure \ref{fig:3mer_subs}), error rates in longer homopolymers (\ref{fig:homopolymer_errors}) and reproducing assembly errors (Figure \ref{fig:supp_assemblies}). However, its distributions of empirical and reported read Q-scores were unrealistically narrow, limiting its potential use as a simulator (Figure \ref{fig:read_qscores}).
+LongISLND performed well at modelling substitutions (Figure \ref{fig:3mer_subs}), error rates in longer homopolymers (Figure \ref{fig:homopolymer_errors}) and reproducing assembly errors (Figure \ref{fig:supp_assemblies}). However, its distributions of empirical and reported read Q-scores were unrealistically narrow (Figure \ref{fig:read_qscores}).
 
-The remaining simulators were less suitable for realistic ONT read simulation. lrsim and SimLoRD were limited by their treatment of FASTQ Q-scores: lrsim assigns the same Q-score to every base in the entire output, while SimLoRD assigns a single Q-score per read. This makes both tools unsuitable for applications which use per-base Q-scores. NanoSim produced an unrealistically narrow distribution of read-level accuracy (Figure \ref{fig:read_qscores}) and an unrealistically broad distribution of base-level accuracy (Figures \ref{fig:supp_qscore_correct_bases} and \ref{fig:supp_qscore_incorrect_bases}).
+The remaining simulators were less suitable for realistic ONT read simulation. lrsim and SimLoRD were limited by their treatment of FASTQ Q-scores: lrsim assigned the same Q-score to every base in the entire output, while SimLoRD assigned a single Q-score per read. This makes both tools unsuitable for applications which use per-base Q-scores. NanoSim produced an unrealistically narrow distribution of read-level accuracy (Figure \ref{fig:read_qscores}) and an unrealistically broad distribution of base-level accuracy (Figures \ref{fig:supp_qscore_correct_bases} and \ref{fig:supp_qscore_incorrect_bases}).
 
-In this study, we did not exhaustively explore every possible configuration of each tool. We aimed to run each one in the way that we judged most likely to maximise overall realism. Other configurations may have produced different results. For example, PBSIM3 includes an error-model HMM mode that may improve error realism, but this comes with trade-offs: read lengths and Q-scores are then generated from parametric models rather than sampled from empirical data, and it does not support training a custom model on user-provided data.
+In this study, we did not exhaustively explore every possible configuration of each tool. We aimed to run each in the way that we judged most likely to maximise overall realism. Other configurations may have produced different results. For example, PBSIM3 offers quality-score HMM (\texttt{qshmm}) and error HMM (\texttt{errhmm}) modes, but these come with trade-offs: read lengths are generated from parametric models rather than sampled from empirical data, they do not support training on user-provided data and the error HMM mode does not provide informative quality scores.
 
 Another limitation is that our benchmarking focused only on WGS. Other applications of long-read sequencing, such as transcriptomics, amplicons and metagenomics, may prioritise different properties of simulated reads. We also did not assess how reads were distributed across the reference genome. Real sequencing datasets may show positional biases in read start sites or coverage, arising from library preparation, sequence composition or other experimental factors, and these biases could be important for some downstream analyses.
 
-This study used a single \textit{Listeria innocua} genome, sequenced using an R10.4.1 ONT flow cell and basecalled with Dorado's \texttt{sup@v5.2.0} model. This dataset was a practical choice because its highly accurate reference genome allowed for detailed analyses, and its small genome size limited computational requirements. Our findings are limited to the dataset and simulator configurations tested. Although the metrics we assessed are not specific to bacterial genomics, it remains to be evaluated whether the conclusions of this study generalise more broadly. Future work could test these simulators on other organisms (e.g. humans), sequencing chemistries, basecalling models and platforms (e.g. PacBio HiFi).
+This study used a single \textit{Listeria innocua} genome, sequenced using an R10.4.1 ONT flow cell and basecalled with Dorado's \texttt{sup@v5.2.0} model. This dataset was a practical choice because its highly accurate reference genome allowed for detailed analyses, and its small genome size limited computational requirements. While the metrics we assessed are not specific to bacterial genomics, it remains to be evaluated whether the conclusions of this study generalise more broadly. Future work could test these simulators on other organisms (e.g. humans) and sequencing platforms (e.g. PacBio HiFi).
 
 
 
 \section{Conclusions}
 
-In the setting of ONT bacterial WGS, no simulator produced reads that looked realistic across all tested metrics. When used in its sampling-based mode, PBSIM3 is likely the best choice for many users. It was easy to run, fast to execute and performed well on several key properties of ONT whole-genome sequencing data, particularly read length and read-level accuracy metrics, although it failed to model error types well. Badread did better at modelling some error types and offers parametric control over the simulated read set, but at the cost of less realism and substantially slower run times. LongISLND modelled some error types well, but its simulated reads had an unrealistically narrow accuracy distribution. The remaining simulators each showed limitations that make them less suitable for general use. More broadly, the fact that no tool performed well on all metrics highlights an opportunity for improved long-read simulators that can combine realistic read-level distributions with more faithful modelling of sequencing errors.
+In the setting of ONT bacterial WGS, no simulator produced reads that looked realistic across all tested metrics. When used in its sampling-based mode, PBSIM3 is likely the best choice for many users. It was easy to use, ran quickly and reproduced read-level properties well, although it failed to realistically model error types. Badread did better at modelling some error types and offers parametric control over the simulated read set, but at the cost of less realism and substantially slower run times. LongISLND modelled some error types well, but its simulated reads had an unrealistically narrow accuracy distribution. The remaining simulators each showed limitations that make them less suitable for general use. More broadly, the fact that no tool performed well on all metrics highlights an opportunity for improved long-read simulators that can combine realistic read-level distributions with more faithful modelling of sequencing errors.
 
 
 
@@ -326,7 +326,7 @@ R.R.W. conceived the study. M.L.T. and R.R.W. performed analyses and drafted the
 
 \section*{Supplementary Information}
 
-\noindent Supplementary methods are available at: \href{https://github.com/mtaouk/ONT-Read-Simulator-Benchmarking}{\nolinkurl{github.com/mtaouk/ONT-Read-Simulator-Benchmarking}}.
+\noindent Supplementary methods and data are available at: \href{https://github.com/mtaouk/ONT-Read-Simulator-Benchmarking}{\nolinkurl{github.com/mtaouk/ONT-Read-Simulator-Benchmarking}}.
 
 
 \par\vspace{2.0em}
@@ -335,7 +335,7 @@ R.R.W. conceived the study. M.L.T. and R.R.W. performed analyses and drafted the
 \begin{table}[!htbp]
 \centering
 \scriptsize
-\caption[Read length statistics]{\textbf{Read length statistics.}}
+\caption[Read length statistics]{\textbf{Read length statistics.} Summary read length statistics for the real test reads and six simulated datasets. Lengths are reported in base pairs (bp). N50 is the read length at which reads of that length or longer account for half of all bases.}
 \label{tab:supp_read_stats}
 \renewcommand{\arraystretch}{1.15}
 \begin{tabular}{
@@ -350,25 +350,25 @@ R.R.W. conceived the study. M.L.T. and R.R.W. performed analyses and drafted the
 \toprule
 \textbf{Dataset} &
 \textbf{Number of reads} &
-\textbf{Total bases (bp)} &
-\textbf{Min length (bp)} &
-\textbf{Max length (bp)} &
-\textbf{Mean length (bp)} &
-\textbf{N50 length (bp)} \\
+\textbf{Total bases} &
+\textbf{Min length} &
+\textbf{Max length} &
+\textbf{Mean length} &
+\textbf{N50 length} \\
 \midrule
-Real reads & 53,093 & 297,265,978 &  5 & 826,029 & 5,599.0 &  8,994 \\
+Real reads & 53,093 & 297,265,978 &  5 & 826,029 & 5,599 &  8,994 \\
 \midrule
-Badread    & 53,180 & 297,256,127 &  1 &  78,973 & 5,589.6 & 10,558 \\
+Badread    & 53,180 & 297,256,127 &  1 &  78,973 & 5,590 & 10,558 \\
 \midrule
-LongISLND  & 53,956 & 297,851,844 & 37 & 181,950 & 5,520.3 &  8,758 \\
+LongISLND  & 53,956 & 297,851,844 & 37 & 181,950 & 5,520 &  8,758 \\
 \midrule
-lrsim      & 53,013 & 297,445,673 & 10 &  89,609 & 5,610.8 &  8,869 \\
+lrsim      & 53,013 & 297,445,673 & 10 &  89,609 & 5,611 &  8,869 \\
 \midrule
-NanoSim    & 53,227 & 309,873,325 & 50 & 214,233 & 5,821.7 &  8,771 \\
+NanoSim    & 53,227 & 309,873,325 & 50 & 214,233 & 5,822 &  8,771 \\
 \midrule
-PBSIM3     & 53,503 & 297,258,351 & 93 & 107,108 & 5,555.9 &  8,784 \\
+PBSIM3     & 53,503 & 297,258,351 & 93 & 107,108 & 5,556 &  8,784 \\
 \midrule
-SimLoRD    & 53,202 & 300,580,690 &  5 & 700,862 & 5,649.8 &  9,033 \\
+SimLoRD    & 53,202 & 300,580,690 &  5 & 700,862 & 5,650 &  9,033 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -377,7 +377,7 @@ SimLoRD    & 53,202 & 300,580,690 &  5 & 700,862 & 5,649.8 &  9,033 \\
 \begin{table}[!htbp]
 \centering
 \scriptsize
-\caption[Read accuracy and alignment statistics]{\textbf{Read accuracy and alignment statistics.} For empirical and reported Q-scores, the mean and standard deviation (SD) values are weighted by aligned read length. Reads without any errors in their alignments have an empirical Q-score of Q$\infty$ and were therefore excluded from the empirical Q-score mean and SD calculations. The ``Unaligned reads'' column shows the percentage of reads without any alignment to the reference genome. The ``Unaligned bases'' column shows the percentage of total read bases which were not part of each read's best alignment, e.g. from unaligned regions at the start or end of reads. Error types are expressed as percentages of all aligned erroneous bases, with insertions and deletions counted by length.}
+\caption[Read accuracy and alignment statistics]{\textbf{Read accuracy and alignment statistics.} For empirical and reported Q-scores, the mean and standard deviation (SD) values are weighted by aligned read length. Reads without any errors in their alignments have an empirical Q-score of Q$\infty$ and were therefore excluded from the empirical Q-score calculations. Error types are expressed as percentages of all aligned erroneous bases, with insertions and deletions counted by length. The ``Unaligned reads'' column shows the percentage of reads without any alignment to the reference genome. The ``Unaligned bases'' column shows the percentage of total read bases which were not part of each read's best alignment, e.g. from unaligned regions at the start or end of reads.}
 \label{tab:supp_read_accuracy}
 \renewcommand{\arraystretch}{1.15}
 \begin{tabular}{
@@ -411,7 +411,7 @@ SimLoRD & 14.77 & 3.97 & 14.64 & 4.03 & 44.4\% & 17.9\% & 37.7\% & 0.90\% & 0.05
 \begin{table}[!htbp]
 \centering
 \scriptsize
-\caption[Read accuracy and alignment statistics after Q10 filtering]{\textbf{Read accuracy and alignment statistics after Q10 filtering.} This table contains the same data as Table \ref{tab:supp_read_accuracy}, but after reads with a reported Q-score of <10 are removed.}
+\caption[Read accuracy and alignment statistics after Q10 filtering]{\textbf{Read accuracy and alignment statistics after Q10 filtering.} This table contains the same data as Table \ref{tab:supp_read_accuracy}, but after reads with a reported Q-score of <10 have been removed.}
 \label{tab:supp_read_accuracy_q10}
 \renewcommand{\arraystretch}{1.15}
 \begin{tabular}{
@@ -447,11 +447,11 @@ SimLoRD & 15.53 & 3.53 & 15.43 & 3.54 & 43.1\% & 17.8\% & 39.1\% & 0.50\% & 0.02
 \scriptsize
 \caption[Distances between simulated-read and real-read distributions]{\textbf{Distances between simulated-read and real-read distributions.} Distance metrics comparing the simulated reads to the real reads for the following distributions: read length (Figure \ref{fig:supp_read_length}), empirical read Q-score (Figure \ref{fig:read_qscores} y-axis), reported read Q-score (Figure \ref{fig:read_qscores} x-axis), correct base Q-score (Figure \ref{fig:supp_qscore_correct_bases}), error base Q-score (Figure \ref{fig:supp_qscore_incorrect_bases}), 3-mer substitutions (Figure \ref{fig:3mer_subs}) and homopolymer length errors (Figure \ref{fig:homopolymer_errors}).
 \par\smallskip
-For the read length and Q-score distributions, the values are Wasserstein-1 distances. Read lengths are weighted by full read length, and read Q-scores are weighted by aligned read length. Reported read Q-scores are calculated over the aligned interval, and reads without any errors in their alignments have an empirical Q-score of Q$\infty$ and were therefore excluded from the empirical Q-score distance.
+For the read length and Q-score distributions, values are Wasserstein-1 distances. Read lengths are weighted by full read length, and read Q-scores are weighted by aligned read length. Reported read Q-scores are calculated over the aligned interval, and reads without any errors in their alignments have an empirical Q-score of Q$\infty$ and were therefore excluded from the empirical Q-score distance.
 \par\smallskip
 For the 3-mer substitutions and homopolymer-length errors, the values are mean absolute errors (MAE). For the 3-mer substitutions, these were calculated in log$_{10}$ space to match the plots in Figure \ref{fig:3mer_subs}. For the homopolymer-length errors, 10-mers were excluded due to their low frequency (Table \ref{tab:supp_homopolymer_counts}).
 \par\smallskip
-Units for the distances are as follows. Read-length distances are expressed in bp, Q-score distances in Phred-score units, 3-mer substitution MAEs in log$_{10}$ units, and homopolymer-error MAEs in percentage points. Smaller values indicate a closer match between the simulated-read and real-read distributions, and a value of zero would indicate perfect agreement.
+Units for the distances are as follows: read-length distances are in bp, Q-score distances in Phred-score units, 3-mer substitution MAEs in log$_{10}$ units, and homopolymer-error MAEs in percentage points. Smaller values indicate a closer match between the simulated-read and real-read distributions, and a value of zero would indicate perfect agreement.
 }
 \label{tab:supp_distance_metrics}
 \renewcommand{\arraystretch}{1.15}
@@ -490,7 +490,7 @@ SimLoRD & 2570 & 4.43 & 4.74 & 22.02 & 4.60 & 0.720 & 8.98 \\
 \centering
 \scriptsize
 \setlength{\tabcolsep}{3pt}
-\caption[Homopolymer observation counts]{\textbf{Homopolymer counts.}}
+\caption[Homopolymer observation counts]{\textbf{Homopolymer counts.} Counts of reference homopolymers and their observations in real and simulated reads, grouped by reference homopolymer length. The ``Reference genome'' column gives the number of distinct loci. Read columns count how often those loci were covered by reads.}
 \label{tab:supp_homopolymer_counts}
 \renewcommand{\arraystretch}{1.15}
 \begin{tabular}{
@@ -532,9 +532,9 @@ SimLoRD & 2570 & 4.43 & 4.74 & 22.02 & 4.60 & 0.720 & 8.98 \\
 \begin{table}[!htbp]
 \centering
 \scriptsize
-\caption[Computational resources]{\textbf{Computational resources.} Wall-clock execution time and maximum RAM usage for training and simulation commands. PBSIM3 and SimLoRD do not have a separate training step and so only list simulation times. All tools were run on a server with Dual AMD EPYC 7742 CPUs, 128 cores (256 threads) 503 GB RAM, running Red Hat Enterprise Linux 10.2.
+\caption[Computational resources]{\textbf{Computational resources.} Wall-clock execution time and maximum RAM usage for training and simulation commands. PBSIM3 and SimLoRD do not have a separate training step and so only list simulation times. All tools were run on a server running Red Hat Enterprise Linux 10.2 with dual AMD EPYC 7742 CPUs, 128 cores (256 threads) and 503 GB RAM.
 \par\smallskip
-Commands were run with 16 threads when possible. lrsim (simulation step) and NanoSim support multithreading and were run using 16 threads. Badread, LongISLND, lrsim (training step), PBSIM3 and SimLoRD do not support multithreading and were therefore run with one thread, but all read alignment commands were run with 16 threads.
+Commands were run with 16 threads when possible. lrsim (simulation step) and NanoSim support multithreading and were run using 16 threads. Badread, LongISLND, lrsim (training step), PBSIM3 and SimLoRD do not support multithreading, but all read alignment commands were run with 16 threads.
 }
 \label{tab:supp_resources}
 \renewcommand{\arraystretch}{1.15}
@@ -575,9 +575,9 @@ SimLoRD   & {---} & {---} & 0:02:47 & 0.19 \\
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.8\textwidth]{figure_s1.pdf}
-\caption[NanoSim homopolymer modes]{\textbf{NanoSim homopolymer modes.} To test NanoSim's homopolymer-length modelling, we ran NanoSim's read modelling step (\texttt{read\_analysis.py genome}) using \texttt{-hp -{}-min\_homopolymer\_len} \textit{h} and NanoSim read simulation (\texttt{simulator.py genome}) using \texttt{-hp -k} \textit{h}. We tested values of \textit{h} ranging from 3--5 (values of 6 or greater caused NanoSim to crash), as well as no homopolymer modelling.
+\caption[NanoSim homopolymer modes]{\textbf{NanoSim homopolymer modes.} To test NanoSim's homopolymer-length modelling, we ran NanoSim's read modelling step (\texttt{read\_analysis.py genome}) using \texttt{-hp -{}-min\_homopolymer\_len} \textit{h} and NanoSim read simulation (\texttt{simulator.py genome}) using \texttt{-hp -k} \textit{h}. We tested values of \textit{h} ranging from 3 to 5 (values of 6 or greater caused NanoSim to crash), as well as no homopolymer modelling.
 \par\smallskip
-Despite intending to improve the realism of homopolymer-length errors, this modelling produced unrealistically low error rates at homopolymers at and above the value of \textit{h}. This appears to result from a bug in NanoSim's training that biases its homopolymer model towards unrealistically low error rates. For the main results in this manuscript, we therefore did not use NanoSim's homopolymer length modelling.}
+Despite being intended to improve the realism of homopolymer-length errors, this modelling produced unrealistically low error rates at homopolymers at and above the value of \textit{h}. This appears to result from a bug in NanoSim's training that biases its homopolymer model towards unrealistically low error rates. For the main results in this manuscript, we therefore did not use NanoSim's homopolymer length modelling.}
 \label{fig:supp_nanosim_homopolymers}
 \end{figure}
 
@@ -587,7 +587,7 @@ Despite intending to improve the realism of homopolymer-length errors, this mode
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.8\textwidth]{figure_s2.pdf}
-\caption[PBSIM3 homopolymer modes]{\textbf{PBSIM3 homopolymer modes.} PBSIM3 contains a \texttt{-{}-hp-del-bias} option which aims to simulate homopolymer deletion bias in ONT reads. To test this, we ran PBSIM3 using \texttt{-{}-hp-del-bias} \textit{h} using values of \textit{h} ranging from 1--10 (the full range for this option). While higher values of \textit{h} did produce more errors in longer homopolymers, it did not reproduce the inflection of the curve seen with the real reads. For the main results in this manuscript, we used \texttt{-{}-hp-del-bias 5} since that minimised the discrepancy between the real reads' homopolymer errors and PBSIM3's homopolymer errors (weighting the discrepancy using homopolymer occurrences).}
+\caption[PBSIM3 homopolymer modes]{\textbf{PBSIM3 homopolymer modes.} PBSIM3 contains a \texttt{-{}-hp-del-bias} option which aims to simulate homopolymer deletion bias in ONT reads. To test this, we ran PBSIM3 using \texttt{-{}-hp-del-bias} \textit{h} using values of \textit{h} ranging from 1 to 10 (the full range for this option). While higher values of \textit{h} did produce more errors in longer homopolymers, they did not reproduce the upward curvature observed in the real reads. For the main results in this manuscript, we used \texttt{-{}-hp-del-bias 5} since that minimised the discrepancy between the real reads' homopolymer errors and PBSIM3's homopolymer errors (weighting the discrepancy using the homopolymer occurrences listed in Table \ref{tab:supp_homopolymer_counts}).}
 \label{fig:supp_pbsim3_homopolymers}
 \end{figure}
 
@@ -597,7 +597,7 @@ Despite intending to improve the realism of homopolymer-length errors, this mode
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.69\textwidth]{figure_s3.pdf}
-\caption[Read length distributions]{\textbf{Read length distributions.} Histograms are shown for the real and simulated datasets. The x-axis shows read length in 1 kbp bins. Histogram bars are weighted by read length, so the y-axis represents the total number of bases contributed by reads in each length bin rather than the number of reads. A simulator is more realistic if its histogram closely matches that of the real reads. Wasserstein distances to quantify the difference in distributions are available in Table \ref{tab:supp_distance_metrics}.}
+\caption[Read length distributions]{\textbf{Read length distributions.} Histograms are shown for the real and simulated datasets. The x-axis shows read length in 1 kbp bins. Histogram bars are weighted by read length, so the y-axis represents the total number of bases contributed by reads in each length bin rather than the number of reads. A simulator is more realistic if its histogram closely matches that of the real reads. Wasserstein distances to quantify the difference in distributions are in Table \ref{tab:supp_distance_metrics}.}
 \label{fig:supp_read_length}
 \end{figure}
 
@@ -607,7 +607,7 @@ Despite intending to improve the realism of homopolymer-length errors, this mode
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.69\textwidth]{figure_s4.pdf}
-\caption[Correct base Q-score distribution]{\textbf{Correct base Q-score distribution.} Reported base Q-score distributions for correctly called bases in the real and simulated datasets. In each panel, bars show the number of bases in each reported base Q-score bin. A base was counted as correct only if it matched the reference and was not adjacent to a deletion in the alignment. A simulator is more realistic if its histogram closely matches that of the real reads. Wasserstein distances to quantify the difference in distributions are available in Table \ref{tab:supp_distance_metrics}.}
+\caption[Correct base Q-score distribution]{\textbf{Correct base Q-score distribution.} Reported base Q-score distributions for correctly called bases in the real and simulated datasets. In each panel, bars show the number of bases in each reported base Q-score bin. A base was counted as correct only if it matched the reference and was not adjacent to a deletion in the alignment. A simulator is more realistic if its histogram closely matches that of the real reads. Wasserstein distances to quantify the difference in distributions are in Table \ref{tab:supp_distance_metrics}.}
 \label{fig:supp_qscore_correct_bases}
 \end{figure}
 
@@ -617,7 +617,7 @@ Despite intending to improve the realism of homopolymer-length errors, this mode
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.69\textwidth]{figure_s5.pdf}
-\caption[Error-associated base Q-score distribution]{\textbf{Error-associated base Q-score distribution.} Reported base Q-score distributions for error-associated bases in the real and simulated datasets. In each panel, bars show the number of error-associated bases in each reported base Q-score bin. Error-associated bases were defined as mismatches and insertions, plus deletion-associated events estimated as half the number of matched bases adjacent to deletions, because deleted bases themselves have no reported Q-score. A simulator is more realistic if its histogram closely matches that of the real reads. Wasserstein distances to quantify the difference in distributions are available in Table \ref{tab:supp_distance_metrics}.}
+\caption[Error-associated base Q-score distribution]{\textbf{Error-associated base Q-score distribution.} Reported base Q-score distributions for error-associated bases in the real and simulated datasets. In each panel, bars show the number of error-associated bases in each reported base Q-score bin. Error-associated bases were defined as mismatches and insertions, plus deletion-associated events estimated as half the number of matched bases adjacent to deletions, because deleted bases themselves have no reported Q-score. A simulator is more realistic if its histogram closely matches that of the real reads. Wasserstein distances to quantify the difference in distributions are in Table \ref{tab:supp_distance_metrics}.}
 \label{fig:supp_qscore_incorrect_bases}
 \end{figure}
 
@@ -638,11 +638,11 @@ Despite intending to improve the realism of homopolymer-length errors, this mode
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.69\textwidth]{figure_s7.pdf}
-\caption[Assembly accuracy]{\textbf{Assembly accuracy.} For each test read set, we randomly subsampled them to depths ranging from 1--50$\times$. Each subsampled set was assembled with five assemblers: Flye, metaMDBG, miniasm+Minipolish, myloasm and Raven. Assembly accuracy was quantified by taking the longest contig ($\ge$2 Mbp), trimming 1000 bp from each end (to remove assembly artefacts that can arise from non-circular read simulation), aligning to the reference genome and dividing the matching bases by the alignment length. Assemblies were excluded from this plot if their longest contig was shorter than 2 Mbp or if that contig (after trimming) did not produce a single end-to-end alignment. A simulator is more realistic if its plot closely matches that of the real reads.
+\caption[Assembly accuracy]{\textbf{Assembly accuracy.} For each test read set, we randomly subsampled it to depths ranging from 1$\times$ to 50$\times$. Each subsampled set was assembled with five assemblers: Flye, metaMDBG, miniasm+Minipolish, myloasm and Raven. Assembly accuracy was quantified by taking the longest contig ($\ge$2 Mbp), trimming 1000 bp from each end (to remove assembly artefacts that can arise from non-circular read simulation), aligning to the reference genome and dividing the matching bases by the alignment length. Assemblies were excluded from this plot if their longest contig was shorter than 2 Mbp or if that contig (after trimming) did not produce a single end-to-end alignment. A simulator is more realistic if its plot closely matches that of the real reads.
 \par\smallskip
-While real reads rarely produced an error-free assembly (Q$\infty$), simulated reads from Badread, lrsim, NanoSim, PBSIM3 and SimLoRD often did, demonstrating that they insufficiently model systematic read errors. LongISLND was best able to mimic the accuracy-vs-depth relationship of the real reads. Some assemblers performed poorly on reads from certain simulators: Raven with LongISLND, metaMDBG with NanoSim, myloasm with NanoSim and Raven with NanoSim.
+While real reads rarely produced an assembly with no detected errors (Q$\infty$), simulated reads from Badread, lrsim, NanoSim, PBSIM3 and SimLoRD often did, demonstrating that they insufficiently model systematic read errors. LongISLND was best able to mimic the accuracy-vs-depth relationship of the real reads. Some assemblers performed poorly on reads from certain simulators: Raven with LongISLND, metaMDBG with NanoSim, myloasm with NanoSim and Raven with NanoSim.
 \par\smallskip
-Complete assemblies are drawn as filled points, while incomplete assemblies are drawn as hollow points. An assembly was considered complete if it had exactly two contigs, one with a length matching the chromosome ($\pm$1\%) and the other with a length matching the plasmid ($\pm$1\%). Considering read sets $\ge$20$\times$ depth, real reads produced a complete assembly 61.3\% of the time, Badread 55.5\%, LongISLND 10.3\%, lrsim 22.6\%, NanoSim 14.8\%, PBSIM3 14.8\% and SimLoRD 6.5\%. Of all simulators, only Badread was able to run in a circular-aware mode, i.e. it generated reads that span the start/end junction of the reference sequences. This avoids breaks in read coverage at reference boundaries and likely contributed to its higher assembly completion rate compared with the other tools. While NanoSim does have a similar feature (\texttt{-dna\_type circular}), this does not support reference with multiple sequences, and so it was not usable in this study.
+Complete assemblies are drawn as filled points, while incomplete assemblies are drawn as hollow points. An assembly was considered complete if it had exactly two contigs, one with a length matching the chromosome ($\pm$1\%) and the other with a length matching the plasmid ($\pm$1\%). Considering read sets $\ge$20$\times$ depth, real reads produced a complete assembly 61.3\% of the time, Badread 55.5\%, LongISLND 10.3\%, lrsim 22.6\%, NanoSim 14.8\%, PBSIM3 14.8\% and SimLoRD 6.5\%. Of all simulators, only Badread was able to run in a circular-aware mode, i.e. it generated reads that span the start/end junction of the reference sequences. This avoids breaks in read coverage at reference boundaries which contributed to its higher assembly completion rate. While NanoSim has a similar feature (\texttt{-dna\_type circular}), this does not support references with multiple sequences and so was not usable in this study.
 }
 \label{fig:supp_assemblies}
 \end{figure}
