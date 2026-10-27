@@ -237,11 +237,15 @@ conda create -n pomoxis pomoxis pandas=2.2.3
 ```
 Latest version was 0.3.16.
 
+Autocycler and assemblers:
+```bash
+conda create -n assembly autocycler=0.8.0 flye=2.9.6 metamdbg=1.4 miniasm=0.3 minipolish=0.2.1 myloasm=0.7.0 raven-assembler=1.8.3
+```
 
 
 ## Homopolymer modes
 
-This analysis is to try NanoSim and PBSIM3 with different homopolymer settings. Will be used for a supp figure and to inform which settings are used for the main text results.
+This analysis is to try NanoSim and PBSIM3 with different homopolymer settings. Will be used for supp figures and to inform which settings are used for the main text results.
 
 ```bash
 cd ~/2025-08_ONT_read_simulator_benchmark
@@ -375,7 +379,8 @@ Parameters:
 * `--fastq` is to get FASTQ reads (the default is FASTA).
 * `-x 100` to get 100x read depth.
 * `-t 16` is the thread count.
-* Note that I did _not_ use `-dna_type circular` because that feature does not support multi-sequence references. I.e. will fail because the reference has a chromosome and a plasmid.
+* Note that I did _not_ use `-dna_type circular` because that feature does not support multi-sequence references. I.e. it will fail because the reference has a chromosome and a plasmid.
+* And I did not use `-hp` for homopolymer modelling (see above).
 
 ```bash
 cd ~/2025-08_ONT_read_simulator_benchmark
@@ -443,6 +448,7 @@ PBSIM3 has three mode options: `errhmm`, `qshmm` and `sample`
 Parameters:
 * `--depth 100` to get 100x read depth.
 * `--difference-ratio 400:189:410` is the sub:ins:del ratio. PBSIM3 doesn't care about the scaling here, just the relative values.
+* `--hp-del-bias 5` gives the most realistic homopolymer error rates (see above).
 
 ```bash
 cd ~/2025-08_ONT_read_simulator_benchmark
@@ -463,8 +469,8 @@ https://github.com/rrwick/Badread
 
 Parameters:
 * `--quantity 100x` to get 100x read depth.
-* `--length 5587,6402` is the mean and stdev length
-* `--identity 19.22,6.23` is the mean and stdev identity (expressed as Q-scores)
+* `--length 5587,6402` is the mean and stdev length.
+* `--identity 19.22,6.23` is the mean and stdev identity (expressed as Q-scores).
 
 ```bash
 cd ~/2025-08_ONT_read_simulator_benchmark
@@ -692,7 +698,7 @@ rm subsample_commands.txt
 
 Assemble each using Flye, metaMDBG, miniasm, Myloasm and Raven:
 ```bash
-conda activate autocycler
+conda activate assembly
 for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
     for d in {01..50}; do
         cd ~/2025-08_ONT_read_simulator_benchmark/assemblies/"$r"/"$d"
@@ -701,7 +707,7 @@ for r in badread longislnd lrsim nanosim pbsim3 real simlord; do
 done
 ```
 
-Make a doubled reference genome (allows complete alignment regardless of starting position):
+Make a doubled reference genome (allows for complete alignment regardless of starting position):
 ```bash
 cd ~/2025-08_ONT_read_simulator_benchmark
 seqtk seq reference.fasta | awk '/^>/ {print; next} {print $0 $0}' > doubled_reference.fasta

@@ -223,7 +223,6 @@ save_and_crop_figure <- function(filename, plot, height = 160, width = 200) {
     )
   }
 
-  # Trim whitespace from the edges (requires pdfcrop to be available on the CLI)
   pdfcrop <- Sys.which("pdfcrop")
   if (nzchar(pdfcrop)) {
     system2(pdfcrop, c(filename, filename))
@@ -489,24 +488,10 @@ read_accuracy_stats <- data %>%
   ) %>%
   arrange(match(tool, c("Real reads", "Badread", "LongISLND", "lrsim", "NanoSim", "PBSIM3", "SimLoRD")))
 
-read_accuracy_stats %>%
-  mutate(across(ends_with("_percent"), ~ sprintf("%.2f%%", .x))) %>%
-  knitr::kable(digits = 2)
-
-cat(sprintf(
-  "%s & %.2f & %.2f & %.2f & %.2f & %s & %s \\\\",
-  read_accuracy_stats$tool,
-  read_accuracy_stats$empirical_mean, read_accuracy_stats$empirical_sd,
-  read_accuracy_stats$reported_mean, read_accuracy_stats$reported_sd,
-  paste0(sprintf("%.2f", read_accuracy_stats$unaligned_reads_percent), "\\%"),
-  paste0(sprintf("%.2f", read_accuracy_stats$unaligned_bases_percent), "\\%")
-), sep = "\n")
+read_accuracy_stats
 ```
 
 ```{r read_accuracy_stats_q10_filter}
-# Filter by whole-read reported Q-score, matching chopper -q 10.
-# Summaries still use aligned-region Q-scores and aligned-length weights, as in Table S2.
-# Unaligned percentages use only the reads/bases retained after quality filtering.
 read_accuracy_stats_q10 <- data %>%
   filter(reported_qscore_whole_read >= 10) %>%
   group_by(tool) %>%
@@ -527,19 +512,7 @@ read_accuracy_stats_q10 <- data %>%
   ) %>%
   arrange(match(tool, c("Real reads", "Badread", "LongISLND", "lrsim", "NanoSim", "PBSIM3", "SimLoRD")))
 
-read_accuracy_stats_q10 %>%
-  mutate(across(ends_with("_percent"), ~ sprintf("%.2f%%", .x))) %>%
-  knitr::kable(digits = 2)
-
-# Add the error-type percentages from the Q10-filtered sub_ins_del.py commands in methods.md.
-cat(sprintf(
-  "%s & %.2f & %.2f & %.2f & %.2f & %s & %s \\\\",
-  read_accuracy_stats_q10$tool,
-  read_accuracy_stats_q10$empirical_mean, read_accuracy_stats_q10$empirical_sd,
-  read_accuracy_stats_q10$reported_mean, read_accuracy_stats_q10$reported_sd,
-  paste0(sprintf("%.2f", read_accuracy_stats_q10$unaligned_reads_percent), "\\%"),
-  paste0(sprintf("%.2f", read_accuracy_stats_q10$unaligned_bases_percent), "\\%")
-), sep = "\n")
+read_accuracy_stats_q10
 ```
 
 ```{r figure_2, fig.width=7.87, fig.height=5.12}
@@ -563,7 +536,6 @@ three_mer_subs <- three_mer_files %>%
     tool = factor(tool, levels = three_mer_files$tool)
   )
 
-# Pair all 192 substitution rates with their real-read rates.
 three_mer_scatter <- three_mer_subs %>%
   filter(tool != "Real reads") %>%
   left_join(
@@ -573,7 +545,6 @@ three_mer_scatter <- three_mer_subs %>%
     by = "substitution"
   )
 
-# A log scale requires positive rates; flag new zero/missing values rather than silently dropping them.
 scatter_rates <- c(three_mer_scatter$real_error_rate, three_mer_scatter$error_rate)
 stopifnot(all(is.finite(scatter_rates) & scatter_rates > 0))
 scatter_limits <- range(scatter_rates) * c(0.8, 1.25)
@@ -836,15 +807,7 @@ distance_metrics <- wasserstein_stats %>%
   left_join(substitution_mae, by = "tool") %>%
   left_join(homopolymer_mae, by = "tool")
 
-distance_metrics %>% knitr::kable(digits = c(0, 2, 2, 2, 2, 2, 3, 2))
-
-cat(sprintf(
-  "%s & %.2f & %.2f & %.2f & %.2f & %.2f & %.3f & %.2f \\\\",
-  distance_metrics$tool, distance_metrics$read_length_bp,
-  distance_metrics$empirical_qscore, distance_metrics$reported_qscore,
-  distance_metrics$correct_base_qscore, distance_metrics$error_base_qscore,
-  distance_metrics$substitution_log10_mae, distance_metrics$homopolymer_mae_pp
-), sep = "\n")
+distance_metrics
 ```
 
 
@@ -875,7 +838,6 @@ homopolymer_modes_data <- read_tsv(
   arrange(match(simulator, c("Real reads", "NanoSim", "PBSIM3")),
           coalesce(setting, 0), rlen)
 
-# Match the colours, outlines and point shapes in Figure 3.
 homopolymer_mode_styles <- tribble(
   ~simulator,   ~colour,           ~outline,       ~starshape,
   "Real reads", real_reads_colour, real_reads_dark, 15,
@@ -883,7 +845,6 @@ homopolymer_mode_styles <- tribble(
   "PBSIM3",     pbsim3_colour,     pbsim3_dark,      5
 )
 
-# Panel metadata are ordered as real reads, NanoSim off/thresholds, then PBSIM3 biases.
 homopolymer_mode_panels <- homopolymer_modes_data %>%
   distinct(tool, simulator, title) %>%
   left_join(homopolymer_mode_styles, by = "simulator")
@@ -921,7 +882,6 @@ make_homopolymer_mode_plot <- function(tool, simulator, title, colour, outline, 
 }
 
 make_homopolymer_mode_grid <- function(plots) {
-  # The first plot is real reads; keep it one panel high in its own column.
   simulator_plots <- plots[-1]
   simulator_rows <- ceiling(length(simulator_plots) / 2)
   real_column <- ggdraw() + draw_plot(
